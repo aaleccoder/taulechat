@@ -1,83 +1,155 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
+
+use tauri_plugin_sql::{Migration, MigrationKind};
+use reqwest_eventsource::EventSource;
+use serde::{Deserialize, Serialize};
+use serde_json::json;
+use reqwest::header::{AUTHORIZATION, CONTENT_TYPE};
+use futures_util::StreamExt;
+use tauri::Emitter;
+
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let migration = vec![
+        Migration{
+        version: 1,
+        description: "create messages table",
+        sql: "
+        CREATE TABLE ai_models (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            name            TEXT NOT NULL,          -- e.g. \"gpt-4\"
+            provider        TEXT NOT NULL,          -- e.g. \"OpenAI\"
+            description     TEXT,
+            created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- Conversations (like threads or chat rooms)
+        CREATE TABLE conversations (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            model_id        INTEGER REFERENCES ai_models(id),
+            title           TEXT,                   -- e.g. \"Project brainstorm\"
+            created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- Messages in a conversation
+        CREATE TABLE messages (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+            sender          TEXT NOT NULL CHECK (sender IN ('user', 'assistant', 'system')),
+            content         TEXT NOT NULL,
+            tokens_used     INTEGER,                -- optional: for token counting
+            created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        ",
+        kind: MigrationKind::Up,
+    }];
     tauri::Builder::default()
+        .plugin(tauri_plugin_sql::Builder::default().add_migrations("sqlite:databse.db", migration).build())
+        .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![greet, fetch_test])
+        .invoke_handler(tauri::generate_handler![start_openrouter_stream])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
 
-use serde_json::json;
-use reqwest::header::HeaderMap;
-use futures_util::StreamExt;
 
-#[tauri::command]
-async fn fetch_test() -> Result<(), String> {
-    match fetch_open_router().await {
-        Ok(_) => {
-            println!("fetch_open_router executed successfully.");
-            Ok(())
-        }
-        Err(e) => {
-            println!("Error: {}", e);
-            Err(e.to_string())
-        }
-    }
+
+
+#[derive(Serialize, Deserialize)]
+struct ChatMessage {
+    role: String,
+    content: String,
 }
 
-async fn fetch_open_router() -> Result<(), Box<dyn std::error::Error>> {
+#[tauri::command]
+async fn start_openrouter_stream(
+    window: tauri::Window,
+    stream_id: String,
+    messages: Vec<ChatMessage>,
+) -> Result<(), String> {
     let client = reqwest::Client::new();
 
-    let mut headers = HeaderMap::new();
-    headers.insert("Authorization", "Bearer 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".parse()?);
-    headers.insert("Content-Type", "application/json".parse()?);
+    let body = json!({
+        "model": "deepseek/deepseek-r1-0528:free",
+        "messages": messages,
+        "stream": true
+    });
 
-    let res = client.post("https://openrouter.ai/api/v1/chat/completions")
-        .headers(headers)
-        .json(&json!({
-            "model": "deepseek/deepseek-r1-0528:free",
-            "messages": [
-                {
-                    "role": "user",
-                    "content": "Hello, world!"
-                }
-            ],
-            "stream": true,
-        }))
-        .send()
-        .await?;
 
-    let mut stream = res.bytes_stream();
+    let req = client.post("https://openrouter.ai/api/v1/chat/completions").header(AUTHORIZATION,"Bearer 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").header(CONTENT_TYPE, "application/json").json(&body);
 
-    while let Some(chunk) = stream.next().await {
-        let chunk = chunk?;
-        let text = String::from_utf8_lossy(&chunk);
+    let mut es = EventSource::new(req).map_err(|e| e.to_string())?;
 
-        for line in text.lines() {
-            if line.starts_with("data: ") {
-                let data = &line[6..];
-                if data == "[DONE]" {
-                    println!("\n--- Stream finished ---");
-                    return Ok(());
-                }
-                // Parse JSON chunk
-                if let Ok(json) = serde_json::from_str::<serde_json::Value>(data) {
-                    if let Some(content) = json["choices"][0]["delta"]["content"].as_str() {
-                        print!("{content}");
-                        // flush stdout immediately
-                        use std::io::Write;
-                        std::io::stdout().flush().unwrap();
+    tauri::async_runtime::spawn({
+            let window = window.clone();
+            async move {
+                while let Some(event) = es.next().await {
+                    match event {
+                        Ok(reqwest_eventsource::Event::Open) => {
+                            let _ = window.emit(
+                                &format!("openrouter://{}/open", stream_id),
+                                serde_json::json!({}),
+                            );
+                        }
+                        Ok(reqwest_eventsource::Event::Message(msg)) => {
+                            // msg.data is either a JSON chunk or "[DONE]"
+                            if msg.data.trim() == "[DONE]" {
+                                let _ = window.emit(
+                                    &format!("openrouter://{}/end", stream_id),
+                                    serde_json::json!({ "reason": "done" }),
+                                );
+                                break;
+                            }
+
+                            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&msg.data) {
+                                if let Some(choices) = v.get("choices").and_then(|c| c.as_array()) {
+                                    for choice in choices {
+                                        if let Some(delta) = choice.get("delta") {
+                                            if let Some(piece) = delta.get("content").and_then(|c| c.as_str()) {
+                                                let _ = window.emit(
+                                                    &format!("openrouter://{}/chunk", stream_id),
+                                                    serde_json::json!({ "content": piece }),
+                                                );
+                                            }
+                                        }
+                                        if let Some(reason) = choice.get("finish_reason").and_then(|r| r.as_str()) {
+                                            if !reason.is_empty() {
+                                                let _ = window.emit(
+                                                    &format!("openrouter://{}/end", stream_id),
+                                                    serde_json::json!({ "reason": reason }),
+                                                );
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                // If parsing fails, forward the raw data for debugging
+                                let _ = window.emit(
+                                    &format!("openrouter://{}/chunk", stream_id),
+                                    serde_json::json!({ "raw": msg.data }),
+                                );
+                            }
+                        }
+                        Err(e) => {
+                            let _ = window.emit(
+                                &format!("openrouter://{}/error", stream_id),
+                                serde_json::json!({ "error": e.to_string() }),
+                            );
+                            break;
+                        }
                     }
                 }
+
+                // Ensure closed
+                es.close();
             }
-        }
-    }
+        });
+
 
     Ok(())
+
+
+
 }

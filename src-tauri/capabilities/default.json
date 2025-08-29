@@ -2,9 +2,29 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capability for the main window",
-  "windows": ["main"],
+  "windows": [
+    "main"
+  ],
   "permissions": [
     "core:default",
-    "opener:default"
+    "opener:default",
+    "http:default",
+    {
+      "identifier": "http:default",
+      "allow": [
+        {
+          "url": "https://*.tauri.app"
+        },
+        {
+          "url": "https://openrouter.ai/api/v1/chat/completions"
+        }
+      ],
+      "deny": [
+        {
+          "url": "https://private.tauri.app"
+        }
+      ]
+    },
+    "sql:default"
   ]
 }
