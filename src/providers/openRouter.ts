@@ -31,10 +31,11 @@ export function useOpenRouter({ id }: { id: string }) {
       setLoading(true);
       let accumulated = "";
 
-      if (useStore.getState().getConversation(id) === undefined) {
-        let idCon = crypto.randomUUID()
-        createConversation(idCon);
-        useStore.getState().addConversation(idCon);
+      const active = useStore.getState().getConversation();
+      if (!active || active.conversationId !== id) {
+        let idCon = id || crypto.randomUUID();
+        await createConversation(idCon);
+        useStore.getState().createConversation(idCon);
       }
 
 
@@ -44,7 +45,7 @@ export function useOpenRouter({ id }: { id: string }) {
         role: "user",
         timestamp: Date.now(),
       };
-      useStore.getState().addMessageToConversation(id, userMessage);
+      useStore.getState().addMessage(userMessage);
       createMessage(userMessage.id, "user", userMessage.content);
 
       const assistantID = crypto.randomUUID();
@@ -54,11 +55,11 @@ export function useOpenRouter({ id }: { id: string }) {
         role: "assistant",
         timestamp: Date.now(),
       };
-      useStore.getState().addMessageToConversation(id, assistantMessage);
+      useStore.getState().addMessage(assistantMessage);
 
 
 
-      const storeMessages = useStore.getState().getConversation(id)?.messages.map((m) => ({
+      const storeMessages = useStore.getState().getConversation()?.messages.map((m) => ({
         role: m.role,
         content: m.content,
       })) || [];
@@ -73,7 +74,7 @@ export function useOpenRouter({ id }: { id: string }) {
         const token = chunk.choices[0]?.delta?.content || "";
         accumulated += token;
         setText(accumulated);
-        useStore.getState().updateMessageInConversation(id, assistantID, accumulated);
+        useStore.getState().updateMessage(assistantID, accumulated);
       }
 
       createMessage(assistantID, "assistant", accumulated)

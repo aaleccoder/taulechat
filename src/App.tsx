@@ -28,7 +28,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/chat/:id" element={<ChatScreen />} />
-              <Route path="/chat/" element={<ChatScreen />} />
+              <Route path="/chat" element={<ChatScreen />} />
               <Route path="/settings" element={<SettingsScreen />} />
               <Route path="/test" element={<TestComponent />} />
             </Routes>

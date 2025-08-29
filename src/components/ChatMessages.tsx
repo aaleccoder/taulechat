@@ -1,7 +1,4 @@
-import { useStore } from "@/utils/state";
-import { shallow } from "zustand/shallow";
 import Markdown from "react-markdown";
-import { useParams } from "react-router";
 import remarkGfm from "remark-gfm";
 export type ChatMessage = {
   id: string;
@@ -10,14 +7,16 @@ export type ChatMessage = {
   timestamp: number;
 }
 
-export default function ChatMessages({ id }: { id: string }) {
+export default function ChatMessages({ messages }: { messages: ChatMessage[] | undefined }) {
 
 
-  const messages = useStore<ChatMessage[]>((state) => {
-    if (!id) return [];
-    const conversation = state.conversations.find((c) => c.conversationId === id);
-    return conversation?.messages || [];
-  });
+  if (!messages || messages.length === 0) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
+        No messages yet. Start the conversation!
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 flex-col overflow-y-auto px-4">

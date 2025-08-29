@@ -10,31 +10,37 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { ConversationState, useStore } from "@/utils/state";
+import type { Conversation } from "@/lib/database/methods";
+import { getAllConversations } from "@/lib/database/methods";
 import { MessageCircle, Settings, TestTube, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 
-interface ChatItem {
-  id: string;
-  title: string;
-  preview: string;
-  timestamp: string;
-  model?: string;
-}
 
 export default function AppSidebar() {
 
-  const conversations: ConversationState[] = useStore<ConversationState[]>((state) => state.conversations);
+  const navigate = useNavigate();
+
+  const [conversations, setConversations] = useState<Conversation[]>([]);
 
   const handleChatClick = (chatId: string) => {
-    const navigate = useNavigate();
-
     navigate(`/chat/${chatId}`);
   };
 
   useEffect(() => {
-
+    let mounted = true;
+    (async () => {
+      try {
+        const rows = await getAllConversations();
+        if (!mounted) return;
+        setConversations(rows || []);
+      } catch (err) {
+        console.error("Failed to load conversations:", err);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   return (
@@ -51,21 +57,21 @@ export default function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {conversations.map((chat) => (
-                <SidebarMenuItem key={chat.conversationId}>
+                <SidebarMenuItem key={chat.id}>
                   <SidebarMenuButton
-                    onClick={() => handleChatClick(chat.conversationId)}
+                    onClick={() => handleChatClick(chat.id)}
                     className="w-full justify-start !bg-card"
                   >
                     <div className="flex flex-col items-start gap-1 w-full ">
                       <div className="flex items-center justify-between w-full">
                         <span className="font-medium truncate">
-                          {chat.title}
+                          {chat.title || "New chat"}
                         </span>
 
                       </div>
-                      {chat.modelId && (
+                      {chat.model_id && (
                         <span className="text-primary font-medium">
-                          {chat.modelId}
+                          {chat.model_id}
                         </span>
                       )}
                     </div>

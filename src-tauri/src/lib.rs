@@ -19,8 +19,9 @@ pub fn run() {
         );
 
         -- Conversations (like threads or chat rooms)
+        -- Use TEXT primary key to store UUIDs generated on the frontend
         CREATE TABLE conversations (
-            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            id              TEXT PRIMARY KEY,
             model_id        INTEGER REFERENCES ai_models(id),
             title           TEXT,                   -- e.g. \"Project brainstorm\"
             created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -28,10 +29,11 @@ pub fn run() {
         );
 
         -- Messages in a conversation
+        -- message id as TEXT to store UUIDs; conversation_id references conversations(id) which is TEXT
         CREATE TABLE messages (
-            id              INTEGER PRIMARY KEY AUTOINCREMENT,
-            conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
-            role          TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
+            id              TEXT PRIMARY KEY,
+            conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+            role            TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
             content         TEXT NOT NULL,
             tokens_used     INTEGER,                -- optional: for token counting
             created_at      DATETIME DEFAULT CURRENT_TIMESTAMP

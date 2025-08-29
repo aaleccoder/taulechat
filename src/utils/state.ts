@@ -9,80 +9,63 @@ export type ConversationState = {
 };
 
 export type ChatConversationsState = {
-    conversations: ConversationState[];
+    conversation: ConversationState | null;
 
-    setConversations: (conversations: ConversationState[]) => void;
-    getConversation: (conversationId: string) => ConversationState | undefined;
-    addConversation: (conversationId?: string, messages?: ChatMessage[]) => string;
-    addConversationObject: (conversation: ConversationState) => void;
-    updateConversation: (conversationId: string, patch: Partial<Omit<ConversationState, "conversationId">>) => void;
-    removeConversation: (conversationId: string) => void;
+    setConversation: (conversation: ConversationState | null) => void;
+    getConversation: () => ConversationState | null;
+    createConversation: (conversationId?: string, messages?: ChatMessage[]) => string;
+    updateConversation: (patch: Partial<Omit<ConversationState, "conversationId">>) => void;
+    removeConversation: () => void;
 
-    /* message ops scoped to a conversation */
-    addMessageToConversation: (conversationId: string, message: ChatMessage) => void;
-    updateMessageInConversation: (conversationId: string, messageId: string, content: string) => void;
-    removeMessageFromConversation: (conversationId: string, messageId: string) => void;
-    setMessagesForConversation: (conversationId: string, messages: ChatMessage[]) => void;
+    addMessage: (message: ChatMessage) => void;
+    updateMessage: (messageId: string, content: string) => void;
+    removeMessage: (messageId: string) => void;
+    setMessages: (messages: ChatMessage[]) => void;
 
     clearAll: () => void;
 };
 
 
 export const useStore = create<ChatConversationsState>((set, get) => ({
-    conversations: [],
+    conversation: null,
 
-    setConversations: (conversations: ConversationState[]) => set(() => ({ conversations })),
+    setConversation: (conversation: ConversationState | null) => set(() => ({ conversation })),
 
-    getConversation: (conversationId: string) => get().conversations.find((c) => c.conversationId === conversationId),
+    getConversation: () => get().conversation,
 
-    addConversation: (conversationId?: string, messages: ChatMessage[] = []) => {
+    createConversation: (conversationId?: string, messages: ChatMessage[] = []) => {
         const id = conversationId || `conversation-${Date.now()}`;
-        set((state) => ({
-            conversations: [...state.conversations, { conversationId: id, modelId: "", title: "", messages }],
-        }));
+        const convo: ConversationState = { conversationId: id, modelId: "", title: "", messages };
+        set(() => ({ conversation: convo }));
         return id;
     },
 
-    addConversationObject: (conversation: ConversationState) =>
-        set((state) => ({ conversations: [...state.conversations, conversation] })),
+    updateConversation: (patch: Partial<Omit<ConversationState, "conversationId">>) =>
+        set((state) => ({ conversation: state.conversation ? { ...state.conversation, ...patch } : state.conversation })),
 
-    updateConversation: (conversationId: string, patch: Partial<Omit<ConversationState, "conversationId">>) =>
+    removeConversation: () => set(() => ({ conversation: null })),
+
+    addMessage: (message: ChatMessage) =>
         set((state) => ({
-            conversations: state.conversations.map((c) => (c.conversationId === conversationId ? { ...c, ...patch } : c)),
+            conversation: state.conversation ? { ...state.conversation, messages: [...state.conversation.messages, message] } : state.conversation,
         })),
 
-    removeConversation: (conversationId: string) =>
-        set((state) => ({ conversations: state.conversations.filter((c) => c.conversationId !== conversationId) })),
-
-    addMessageToConversation: (conversationId: string, message: ChatMessage) =>
+    updateMessage: (messageId: string, content: string) =>
         set((state) => ({
-            conversations: state.conversations.map((c) =>
-                c.conversationId === conversationId ? { ...c, messages: [...c.messages, message] } : c
-            ),
+            conversation: state.conversation
+                ? { ...state.conversation, messages: state.conversation.messages.map((m) => (m.id === messageId ? { ...m, content } : m)) }
+                : state.conversation,
         })),
 
-    updateMessageInConversation: (conversationId: string, messageId: string, content: string) =>
+    removeMessage: (messageId: string) =>
         set((state) => ({
-            conversations: state.conversations.map((c) =>
-                c.conversationId === conversationId
-                    ? { ...c, messages: c.messages.map((m) => (m.id === messageId ? { ...m, content } : m)) }
-                    : c
-            ),
+            conversation: state.conversation ? { ...state.conversation, messages: state.conversation.messages.filter((m) => m.id !== messageId) } : state.conversation,
         })),
 
-    removeMessageFromConversation: (conversationId: string, messageId: string) =>
-        set((state) => ({
-            conversations: state.conversations.map((c) =>
-                c.conversationId === conversationId ? { ...c, messages: c.messages.filter((m) => m.id !== messageId) } : c
-            ),
-        })),
+    setMessages: (messages: ChatMessage[]) =>
+        set((state) => ({ conversation: state.conversation ? { ...state.conversation, messages } : state.conversation })),
 
-    setMessagesForConversation: (conversationId: string, messages: ChatMessage[]) =>
-        set((state) => ({
-            conversations: state.conversations.map((c) => (c.conversationId === conversationId ? { ...c, messages } : c)),
-        })),
-
-    clearAll: () => set(() => ({ conversations: [] })),
+    clearAll: () => set(() => ({ conversation: null })),
 }));
 
 export default useStore;
