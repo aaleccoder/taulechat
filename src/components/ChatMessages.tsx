@@ -1,11 +1,6 @@
+import { ChatMessage } from "@/utils/state";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-export type ChatMessage = {
-  id: string;
-  content: string;
-  role: "user" | "assistant";
-  timestamp: number;
-}
 
 export default function ChatMessages({ messages }: { messages: ChatMessage[] | undefined }) {
 

@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router";
+import { Link, Route, Routes, useNavigate } from "react-router";
 import "./App.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import {
@@ -11,18 +11,29 @@ import AppSidebar from "./components/Sidebar";
 import SettingsScreen from "./components/Settings";
 import TestComponent from "./components/testcomponent";
 import Home from "./components/Home";
+import { Button } from "./components/ui/button";
+import { Pen } from "lucide-react";
+import { styles } from "./constants/style";
+import { useStore } from "./utils/state";
 
 function App() {
+
+  const navigate = useNavigate();
+
   return (
     <ThemeProvider defaultTheme="dark">
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
           <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-            <SidebarTrigger className="-ml-1 !bg-primary" />
+            <SidebarTrigger className="-ml-1" />
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-semibold">TauLeChat</h1>
             </div>
+            <Link to="/chat" className="ml-auto bg-primary text-black px-4 py-2 rounded hover:bg-accent/90 flex items-center gap-2">
+              New Chat
+              <Pen className="h-4 w-4" />
+            </Link>
           </header>
           <main className="flex flex-1 flex-col gap-4 px-4 mt-4">
             <Routes>

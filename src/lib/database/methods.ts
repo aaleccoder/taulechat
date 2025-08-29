@@ -1,3 +1,4 @@
+import { ChatMessage, ConversationState } from "@/utils/state";
 import { db } from "./connection";
 
 // ------------------------- Interfaces -------------------------
@@ -7,23 +8,6 @@ export interface AiModel {
     name: string;
     provider: string;
     description?: string;
-    created_at: string;
-}
-
-export interface Conversation {
-    id: string; // changed to string (UUID)
-    model_id?: number;
-    title?: string;
-    created_at: string;
-    updated_at: string;
-}
-
-export interface Message {
-    id: string; // changed to string (UUID)
-    conversation_id: string; // changed to string (UUID)
-    role: 'user' | 'assistant' | 'system';
-    content: string;
-    tokens_used?: number;
     created_at: string;
 }
 
@@ -59,14 +43,14 @@ export function createConversation(id: string, title?: string, model_id?: number
 }
 
 export function getConversation(id: string) {
-    return db.select<Conversation[]>("SELECT * FROM conversations WHERE id = $1", [id]);
+    return db.select<ConversationState[]>("SELECT * FROM conversations WHERE id = $1", [id]);
 }
 
 export function getAllConversations() {
-    return db.select<Conversation[]>("SELECT * FROM conversations ORDER BY updated_at DESC");
+    return db.select<Omit<ConversationState, "messages">[]>("SELECT * FROM conversations ORDER BY updated_at DESC");
 }
 
-export function updateConversation(id: string, values: Partial<Omit<Conversation, 'id' | 'created_at'>>) {
+export function updateConversation(id: string, values: Partial<Omit<ConversationState, 'id' | 'created_at'>>) {
     const setClause = Object.keys(values).map((key, i) => `${key} = $${i + 1}`).join(', ');
     const params = Object.values(values);
     // Also update the updated_at timestamp
@@ -79,23 +63,23 @@ export function deleteConversation(id: string) {
 
 // ------------------------- Messages CRUD -------------------------
 
-export function createMessage(conversation_id: string, role: Message['role'], content: string, tokens_used?: number) {
-    return db.execute("INSERT INTO messages (conversation_id, role, content, tokens_used) VALUES ($1, $2, $3, $4)", [conversation_id, role, content, tokens_used]);
+export function createMessage(id: string, conversation_id: string, role: ChatMessage['role'], content: string, tokens_used?: number) {
+    return db.execute("INSERT INTO messages (id, conversation_id, role, content, tokens_used) VALUES ($1, $2, $3, $4, $5)", [id, conversation_id, role, content, tokens_used]);
 }
 
 export function getMessage(id: string) {
-    return db.select<Message[]>("SELECT * FROM messages WHERE id = $1", [id]);
+    return db.select<ChatMessage[]>("SELECT * FROM messages WHERE id = $1", [id]);
 }
 
 export function getMessagesForConversation(conversation_id: string) {
-    return db.select<Message[]>("SELECT * FROM messages WHERE conversation_id = $1 ORDER BY created_at ASC", [conversation_id]);
+    return db.select<ChatMessage[]>("SELECT * FROM messages WHERE conversation_id = $1 ORDER BY created_at ASC", [conversation_id]);
 }
 
 export function getAllMessages() {
-    return db.select<Message[]>("SELECT * FROM messages");
+    return db.select<ChatMessage[]>("SELECT * FROM messages");
 }
 
-export function updateMessage(id: string, values: Partial<Omit<Message, 'id' | 'created_at' | 'conversation_id'>>) {
+export function updateMessage(id: string, values: Partial<Omit<ChatMessage, 'id' | 'created_at' | 'conversation_id'>>) {
     const setClause = Object.keys(values).map((key, i) => `${key} = $${i + 1}`).join(', ');
     const params = Object.values(values);
     return db.execute(`UPDATE messages SET ${setClause} WHERE id = $${params.length + 1}`, [...params, id]);

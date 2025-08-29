@@ -1,10 +1,18 @@
-import { ChatMessage } from "@/components/ChatMessages";
 import { ProviderName } from "@/components/Settings";
 import { createConversation, createMessage } from "@/lib/database/methods";
-import { useStore } from "@/utils/state";
+import { ChatMessage, useSidebarConversation, useStore } from "@/utils/state";
 import { getAPIKeyFromStore } from "@/utils/store";
 import OpenAI from "openai";
 import { useCallback, useEffect, useState } from "react";
+
+function createTitleFromPrompt(prompt: string) {
+  const maxLength = 50;
+  if (prompt.length > maxLength) {
+    return prompt.slice(0, maxLength) + "...";
+  }
+  return prompt;
+}
+
 
 export function useOpenRouter({ id }: { id: string }) {
   const [text, setText] = useState("");
@@ -32,10 +40,14 @@ export function useOpenRouter({ id }: { id: string }) {
       let accumulated = "";
 
       const active = useStore.getState().getConversation();
-      if (!active || active.conversationId !== id) {
+      if (!active || active.id !== id) {
         let idCon = id || crypto.randomUUID();
         await createConversation(idCon);
         useStore.getState().createConversation(idCon);
+
+
+
+        useSidebarConversation.getState().addConversation({ id: idCon, model_id: "", title: createTitleFromPrompt(prompt) });
       }
 
 
@@ -43,17 +55,19 @@ export function useOpenRouter({ id }: { id: string }) {
         id: crypto.randomUUID(),
         content: prompt,
         role: "user",
-        timestamp: Date.now(),
+        conversation_id: id,
+        created_at: new Date().toISOString()
       };
       useStore.getState().addMessage(userMessage);
-      createMessage(userMessage.id, "user", userMessage.content);
+      createMessage(crypto.randomUUID(), useStore.getState().getConversation()?.id ?? "", "user", userMessage.content);
 
       const assistantID = crypto.randomUUID();
       const assistantMessage: ChatMessage = {
         id: assistantID,
         content: "",
         role: "assistant",
-        timestamp: Date.now(),
+        conversation_id: id,
+        created_at: new Date().toISOString()
       };
       useStore.getState().addMessage(assistantMessage);
 
@@ -77,7 +91,7 @@ export function useOpenRouter({ id }: { id: string }) {
         useStore.getState().updateMessage(assistantID, accumulated);
       }
 
-      createMessage(assistantID, "assistant", accumulated)
+      createMessage(crypto.randomUUID(), useStore.getState().getConversation()?.id ?? "", "assistant", accumulated)
 
 
     } catch (error) {

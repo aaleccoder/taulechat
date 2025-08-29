@@ -10,10 +10,11 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import type { Conversation } from "@/lib/database/methods";
+import { styles } from "@/constants/style";
 import { getAllConversations } from "@/lib/database/methods";
+import { useSidebarConversation, useStore } from "@/utils/state";
 import { MessageCircle, Settings, TestTube, User } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 
 
@@ -21,10 +22,12 @@ export default function AppSidebar() {
 
   const navigate = useNavigate();
 
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const conversations = useSidebarConversation((state) => state.conversations) || [];
+
 
   const handleChatClick = (chatId: string) => {
     navigate(`/chat/${chatId}`);
+    useStore.getState().clearAll();
   };
 
   useEffect(() => {
@@ -32,8 +35,8 @@ export default function AppSidebar() {
     (async () => {
       try {
         const rows = await getAllConversations();
+        if (mounted) useSidebarConversation.getState().addConversations(rows);
         if (!mounted) return;
-        setConversations(rows || []);
       } catch (err) {
         console.error("Failed to load conversations:", err);
       }
@@ -47,7 +50,7 @@ export default function AppSidebar() {
     <Sidebar>
       <SidebarHeader>
         <Link to={"/"} className="flex items-center gap-2 px-2 py-2" >
-          <MessageCircle className="h-6 w-6" />
+          <MessageCircle size={styles.iconSize} />
           <span className="font-semibold text-lg">TauLeChat</span>
         </Link>
       </SidebarHeader>
@@ -67,13 +70,7 @@ export default function AppSidebar() {
                         <span className="font-medium truncate">
                           {chat.title || "New chat"}
                         </span>
-
                       </div>
-                      {chat.model_id && (
-                        <span className="text-primary font-medium">
-                          {chat.model_id}
-                        </span>
-                      )}
                     </div>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -87,7 +84,7 @@ export default function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link to="/profile" className="flex items-center gap-2">
-                <User className="h-4 w-4" />
+                <User size={styles.iconSize} />
                 <span>Profile</span>
               </Link>
             </SidebarMenuButton>
@@ -95,7 +92,7 @@ export default function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link to="/settings" className="flex items-center gap-2">
-                <Settings className="h-4 w-4" />
+                <Settings size={styles.iconSize} />
                 <span>Settings</span>
               </Link>
             </SidebarMenuButton>
@@ -103,7 +100,7 @@ export default function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link to="/test" className="flex items-center gap-2">
-                <TestTube className="h-4 w-4" />
+                <TestTube size={styles.iconSize} />
                 <span>Test</span>
               </Link>
             </SidebarMenuButton>

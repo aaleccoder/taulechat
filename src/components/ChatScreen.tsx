@@ -1,28 +1,21 @@
 import ChatInput from "./ChatInput";
-import ChatMessages, { ChatMessage } from "./ChatMessages";
+import ChatMessages from "./ChatMessages";
 import { useParams } from "react-router";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { getMessagesForConversation } from "@/lib/database/methods";
-import useStore from "@/utils/state";
+import { useStore } from "@/utils/state";
 
 export default function ChatScreen() {
   const params = useParams<{ id: string }>();
   const id = params.id;
 
-  const clearAll = useStore((state) => state.clearAll);
-
-  useEffect(() => {
-    clearAll();
-  }, [clearAll]);
-
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
 
   let messagesState = useStore((state) => state.conversation?.messages);
 
   useEffect(() => {
     let mounted = true;
     if (!id) {
-      setMessages([]);
+      useStore.getState().setMessages([]);
       return;
     }
 
@@ -30,16 +23,11 @@ export default function ChatScreen() {
       try {
         const rows = await getMessagesForConversation(id);
         if (!mounted) return;
-        const mapped: ChatMessage[] = (rows || []).map((r: any) => ({
-          id: r.id,
-          content: r.content,
-          role: r.role === "user" ? "user" : "assistant",
-          timestamp: r.created_at ? Date.parse(r.created_at) : Date.now(),
-        }));
-        setMessages(mapped);
+        useStore.getState().createConversation(id);
+        useStore.getState().setMessages(rows);
       } catch (err) {
         console.error("Failed to load messages for conversation", id, err);
-        if (mounted) setMessages([]);
+        if (mounted) useStore.getState().setMessages([]);
       }
     })();
 
@@ -50,7 +38,7 @@ export default function ChatScreen() {
 
   return (
     <div className="flex flex-col h-full bg-background justify-end">
-      <ChatMessages messages={messagesState ?? messages} />
+      <ChatMessages messages={messagesState} />
       <ChatInput id={id ?? ""} />
     </div>
   );

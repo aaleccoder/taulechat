@@ -1,12 +1,29 @@
-import type { ChatMessage } from "@/components/ChatMessages";
 import { create } from "zustand";
 
 export type ConversationState = {
-    conversationId: string;
-    modelId: string,
+    id: string;
+    model_id: string,
     title: string,
     messages: ChatMessage[];
 };
+
+export type ChatMessage = {
+    id: string;
+    conversation_id: string;
+    role: 'user' | 'assistant' | 'system';
+    content: string;
+    tokens_used?: number;
+    created_at: string;
+};
+
+
+export type SidebarDataState = {
+    conversations: Omit<ConversationState, 'messages'>[];
+    addConversation: (conversation: Omit<ConversationState, 'messages'>) => void;
+    addConversations: (conversations: Omit<ConversationState, 'messages'>[]) => void;
+    removeConversation: (conversationId: string) => void;
+    updateConversation: (conversation: Omit<ConversationState, 'messages'>) => void;
+}
 
 export type ChatConversationsState = {
     conversation: ConversationState | null;
@@ -35,12 +52,12 @@ export const useStore = create<ChatConversationsState>((set, get) => ({
 
     createConversation: (conversationId?: string, messages: ChatMessage[] = []) => {
         const id = conversationId || `conversation-${Date.now()}`;
-        const convo: ConversationState = { conversationId: id, modelId: "", title: "", messages };
+        const convo: ConversationState = { id: id, model_id: "", title: "", messages };
         set(() => ({ conversation: convo }));
         return id;
     },
 
-    updateConversation: (patch: Partial<Omit<ConversationState, "conversationId">>) =>
+    updateConversation: (patch: Partial<Omit<ConversationState, "id">>) =>
         set((state) => ({ conversation: state.conversation ? { ...state.conversation, ...patch } : state.conversation })),
 
     removeConversation: () => set(() => ({ conversation: null })),
@@ -68,5 +85,18 @@ export const useStore = create<ChatConversationsState>((set, get) => ({
     clearAll: () => set(() => ({ conversation: null })),
 }));
 
-export default useStore;
+export const useSidebarConversation = create<SidebarDataState>((set, get) => ({
+    conversations: [],
 
+    addConversations(conversations) {
+        set((state) => ({ conversations: [...state.conversations, ...conversations] }));
+    },
+
+    addConversation: (conversation) => set((state) => ({ conversations: [...state.conversations, conversation] })),
+
+    removeConversation: (conversationId) => set((state) => ({ conversations: state.conversations.filter((c) => c.id !== conversationId) })),
+
+    updateConversation: (conversation) => set((state) => ({
+        conversations: state.conversations.map((c) => (c.id === conversation.id ? { ...c, ...conversation } : c))
+    })),
+}));
