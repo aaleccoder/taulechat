@@ -10,19 +10,11 @@ pub fn run() {
         version: 1,
         description: "create messages table",
         sql: "
-        CREATE TABLE ai_models (
-            id              INTEGER PRIMARY KEY AUTOINCREMENT,
-            name            TEXT NOT NULL,          -- e.g. \"gpt-4\"
-            provider        TEXT NOT NULL,          -- e.g. \"OpenAI\"
-            description     TEXT,
-            created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
 
         -- Conversations (like threads or chat rooms)
         -- Use TEXT primary key to store UUIDs generated on the frontend
         CREATE TABLE conversations (
             id              TEXT PRIMARY KEY,
-            model_id        INTEGER REFERENCES ai_models(id),
             title           TEXT,                   -- e.g. \"Project brainstorm\"
             created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP

@@ -1,4 +1,4 @@
-import { Link, Route, Routes, useNavigate } from "react-router";
+import { Link, Route, Routes } from "react-router";
 import "./App.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import {
@@ -11,14 +11,27 @@ import AppSidebar from "./components/Sidebar";
 import SettingsScreen from "./components/Settings";
 import TestComponent from "./components/testcomponent";
 import Home from "./components/Home";
-import { Button } from "./components/ui/button";
 import { Pen } from "lucide-react";
-import { styles } from "./constants/style";
-import { useStore } from "./utils/state";
+import { useEffect } from "react";
+import { saveModelsToStore } from "./utils/store";
 
 function App() {
 
-  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const res = await fetch("https://openrouter.ai/api/v1/models");
+      if (!res.ok) {
+        throw new Error("Failed to fetch models");
+      }
+      const data = await res.json();
+      await saveModelsToStore(data);
+    }
+
+    fetchData();
+
+  }, [])
+
 
   return (
     <ThemeProvider defaultTheme="dark">

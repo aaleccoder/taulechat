@@ -6,14 +6,36 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { useOpenRouter } from "@/providers/openRouter";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { styles } from "@/constants/style";
+import { getModelsFromStore } from "@/utils/store";
 
 export default function ChatInput({ id }: { id: string }) {
   const { sendPrompt } = useOpenRouter({ id });
 
   const [userInput, setUserInput] = useState("");
+  const [models, setModels] = useState<string[]>([]);
+
+
+  useEffect(() => {
+    const loadModels = async () => {
+      try {
+        const fetchedModels = await getModelsFromStore();
+        console.log(fetchedModels);
+        setModels(fetchedModels ?? []);
+      } catch (error) {
+        console.error("Error fetching models:", error);
+
+      }
+    };
+    loadModels();
+  }, [])
+
+
+
+
+
 
   const sendMessage = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -55,10 +77,10 @@ export default function ChatInput({ id }: { id: string }) {
                 <ChevronDown size={styles.iconSize} className="flex-shrink-0" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem>GPT-3.5</DropdownMenuItem>
-              <DropdownMenuItem>GPT-4</DropdownMenuItem>
-              <DropdownMenuItem>Custom</DropdownMenuItem>
+            <DropdownMenuContent align="start" side="top" className="w-56">
+              {models.map((model) => (
+                <DropdownMenuItem key={model.id} >{model.name}</DropdownMenuItem>
+              ))}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

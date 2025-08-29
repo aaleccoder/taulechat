@@ -1,45 +1,11 @@
 import { ChatMessage, ConversationState } from "@/utils/state";
 import { db } from "./connection";
 
-// ------------------------- Interfaces -------------------------
-
-export interface AiModel {
-    id: number;
-    name: string;
-    provider: string;
-    description?: string;
-    created_at: string;
-}
-
-// ------------------------- AI Models CRUD -------------------------
-
-export function createAiModel(name: string, provider: string, description?: string) {
-    return db.execute("INSERT INTO ai_models (name, provider, description) VALUES ($1, $2, $3)", [name, provider, description]);
-}
-
-export function getAiModel(id: number) {
-    return db.select<AiModel[]>("SELECT * FROM ai_models WHERE id = $1", [id]);
-}
-
-export function getAllAiModels() {
-    return db.select<AiModel[]>("SELECT * FROM ai_models");
-}
-
-export function updateAiModel(id: number, values: Partial<Omit<AiModel, 'id' | 'created_at'>>) {
-    const setClause = Object.keys(values).map((key, i) => `${key} = $${i + 1}`).join(', ');
-    const params = Object.values(values);
-    return db.execute(`UPDATE ai_models SET ${setClause} WHERE id = $${params.length + 1}`, [...params, id]);
-}
-
-export function deleteAiModel(id: number) {
-    return db.execute("DELETE FROM ai_models WHERE id = $1", [id]);
-}
-
 // ------------------------- Conversations CRUD -------------------------
 
 // Note: id is now a string (UUID). When creating from frontend, pass the generated id.
-export function createConversation(id: string, title?: string, model_id?: number) {
-    return db.execute("INSERT INTO conversations (id, title, model_id) VALUES ($1, $2, $3)", [id, title, model_id]);
+export function createConversation(id: string, title?: string) {
+    return db.execute("INSERT INTO conversations (id, title) VALUES ($1, $2)", [id, title]);
 }
 
 export function getConversation(id: string) {
