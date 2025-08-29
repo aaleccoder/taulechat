@@ -10,7 +10,10 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { MessageCircle, Settings, User } from "lucide-react";
+import { ConversationState, useStore } from "@/utils/state";
+import { MessageCircle, Settings, TestTube, User } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router";
 
 interface ChatItem {
   id: string;
@@ -20,67 +23,37 @@ interface ChatItem {
   model?: string;
 }
 
-const chatItems: ChatItem[] = [
-  {
-    id: "1",
-    title: "Help with React hooks",
-    preview: "Can you explain useEffect and useState?",
-    timestamp: "2m ago",
-    model: "GPT-4",
-  },
-  {
-    id: "2",
-    title: "Python data analysis",
-    preview: "How do I create a pandas DataFrame?",
-    timestamp: "1h ago",
-    model: "GPT-3.5",
-  },
-  {
-    id: "3",
-    title: "CSS Grid layout tutorial",
-    preview: "Show me how to create a responsive grid",
-    timestamp: "3h ago",
-    model: "GPT-4",
-  },
-  {
-    id: "4",
-    title: "Database optimization",
-    preview: "Best practices for indexing in PostgreSQL",
-    timestamp: "5h ago",
-    model: "GPT-4",
-  },
-  {
-    id: "5",
-    title: "API design patterns",
-    preview: "REST vs GraphQL comparison",
-    timestamp: "1d ago",
-    model: "GPT-3.5",
-  },
-];
-
 export default function AppSidebar() {
+
+  const conversations: ConversationState[] = useStore<ConversationState[]>((state) => state.conversations);
+
   const handleChatClick = (chatId: string) => {
-    // TODO: Handle chat selection
-    console.log(`Chat clicked: ${chatId}`);
+    const navigate = useNavigate();
+
+    navigate(`/chat/${chatId}`);
   };
+
+  useEffect(() => {
+
+  }, []);
 
   return (
     <Sidebar>
       <SidebarHeader>
-        <div className="flex items-center gap-2 px-2 py-2">
+        <Link to={"/"} className="flex items-center gap-2 px-2 py-2" >
           <MessageCircle className="h-6 w-6" />
           <span className="font-semibold text-lg">TauLeChat</span>
-        </div>
+        </Link>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Chats</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {chatItems.map((chat) => (
-                <SidebarMenuItem key={chat.id}>
+              {conversations.map((chat) => (
+                <SidebarMenuItem key={chat.conversationId}>
                   <SidebarMenuButton
-                    onClick={() => handleChatClick(chat.id)}
+                    onClick={() => handleChatClick(chat.conversationId)}
                     className="w-full justify-start !bg-card"
                   >
                     <div className="flex flex-col items-start gap-1 w-full ">
@@ -88,16 +61,11 @@ export default function AppSidebar() {
                         <span className="font-medium truncate">
                           {chat.title}
                         </span>
-                        <span className="text-muted-foreground">
-                          {chat.timestamp}
-                        </span>
+
                       </div>
-                      <span className="text-muted-foreground truncate w-full">
-                        {chat.preview}
-                      </span>
-                      {chat.model && (
+                      {chat.modelId && (
                         <span className="text-primary font-medium">
-                          {chat.model}
+                          {chat.modelId}
                         </span>
                       )}
                     </div>
@@ -112,18 +80,26 @@ export default function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <a href="#" className="flex items-center gap-2">
+              <Link to="/profile" className="flex items-center gap-2">
                 <User className="h-4 w-4" />
                 <span>Profile</span>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <a href="#" className="flex items-center gap-2">
+              <Link to="/settings" className="flex items-center gap-2">
                 <Settings className="h-4 w-4" />
                 <span>Settings</span>
-              </a>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <Link to="/test" className="flex items-center gap-2">
+                <TestTube className="h-4 w-4" />
+                <span>Test</span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

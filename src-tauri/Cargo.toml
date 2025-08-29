@@ -28,3 +28,4 @@ futures-util = "0.3"
 tauri-plugin-http = "2"
 reqwest-eventsource = "0.6"
 tauri-plugin-sql = { version = "2", features = ["sqlite"] }
+tauri-plugin-store = "2"

@@ -8,6 +8,9 @@ import {
 } from "@/components/ui/sidebar";
 import ChatScreen from "./components/ChatScreen";
 import AppSidebar from "./components/Sidebar";
+import SettingsScreen from "./components/Settings";
+import TestComponent from "./components/testcomponent";
+import Home from "./components/Home";
 
 function App() {
   return (
@@ -23,7 +26,11 @@ function App() {
           </header>
           <main className="flex flex-1 flex-col gap-4 px-4 mt-4">
             <Routes>
-              <Route path="/" element={<ChatScreen />} />
+              <Route path="/" element={<Home />} />
+              <Route path="/chat/:id" element={<ChatScreen />} />
+              <Route path="/chat/" element={<ChatScreen />} />
+              <Route path="/settings" element={<SettingsScreen />} />
+              <Route path="/test" element={<TestComponent />} />
             </Routes>
           </main>
         </SidebarInset>
