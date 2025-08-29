@@ -25,7 +25,8 @@ function App() {
         throw new Error("Failed to fetch models");
       }
       const data = await res.json();
-      await saveModelsToStore(data);
+      // store only the models array (data.data)
+      await saveModelsToStore(data.data);
     }
 
     fetchData();

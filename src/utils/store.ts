@@ -11,8 +11,8 @@ const modelsJson = await load('models.json', {
 });
 
 
-export async function getModelsFromStore() {
-    return await modelsJson.get<string[]>("models");
+export async function getModelsFromStore(): Promise<Model[] | undefined> {
+    return await modelsJson.get<Model[]>("models");
 }
 
 export async function saveModelsToStore(models: Model[]) {

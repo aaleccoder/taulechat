@@ -9,13 +9,14 @@ import { useOpenRouter } from "@/providers/openRouter";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { styles } from "@/constants/style";
+import { Model } from "@/utils/state";
 import { getModelsFromStore } from "@/utils/store";
 
 export default function ChatInput({ id }: { id: string }) {
   const { sendPrompt } = useOpenRouter({ id });
 
   const [userInput, setUserInput] = useState("");
-  const [models, setModels] = useState<string[]>([]);
+  const [models, setModels] = useState<Model[]>([]);
 
 
   useEffect(() => {
@@ -79,7 +80,7 @@ export default function ChatInput({ id }: { id: string }) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" side="top" className="w-56">
               {models.map((model) => (
-                <DropdownMenuItem key={model.id} >{model.name}</DropdownMenuItem>
+                <DropdownMenuItem key={model.id}>{model.name ?? model.id}</DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
