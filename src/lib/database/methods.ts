@@ -9,7 +9,7 @@ export function createConversation(id: string, title?: string, model_id?: string
 }
 
 export function getConversation(id: string) {
-    return db.select<ConversationState[]>("SELECT * FROM conversations WHERE id = $1", [id]);
+    return db.select<ConversationState>("SELECT * FROM conversations WHERE id = $1", [id]);
 }
 
 export function getAllConversations() {

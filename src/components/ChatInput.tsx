@@ -1,6 +1,7 @@
 import { Send, Paperclip } from "lucide-react";
 import { useOpenRouter } from "@/providers/openRouter";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { styles } from "@/constants/style";
 import { Model, useStore } from "@/utils/state";
@@ -24,7 +25,6 @@ import { Drawer, DrawerContent, DrawerTrigger } from "./ui/drawer";
 import React from "react";
 
 export default function ChatInput({ id }: { id: string }) {
-
   const [userInput, setUserInput] = useState("");
   const [models, setModels] = useState<Model[]>([]);
   const [open, setOpen] = useState(false)
@@ -32,7 +32,7 @@ export default function ChatInput({ id }: { id: string }) {
     null
   )
   const { sendPrompt } = useOpenRouter();
-
+  const navigate = useNavigate();
 
 
 
@@ -50,15 +50,33 @@ export default function ChatInput({ id }: { id: string }) {
     loadModels();
   }, [])
 
-
-
-
+  useEffect(() => {
+    const loadActiveModel = async () => {
+      try {
+        const model_id = useStore.getState().conversation?.model_id;
+        setSelectedModel(models.find((model) => model.id === model_id) ?? null);
+      } catch (error) {
+        console.error("Error fetching active model:", error);
+      }
+    };
+    loadActiveModel();
+  }, [id])
 
 
   const sendMessage = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     if (!userInput.trim()) return;
-    sendPrompt(id, userInput.trim(), selectedModel?.id ?? "");
+
+    let chatId = id;
+    if (!chatId) {
+      const newId = crypto.randomUUID();
+      sendPrompt(newId, userInput.trim(), selectedModel?.id ?? "");
+      console.log("New conversation created:", newId);
+      navigate(`/chat/${newId}`);
+    } else {
+      sendPrompt(chatId, userInput.trim(), selectedModel?.id ?? "");
+    }
+
     setUserInput("");
   };
 
@@ -118,7 +136,14 @@ export default function ChatInput({ id }: { id: string }) {
 
       <Button
         className="flex items-center justify-center h-12 w-12"
-        onClick={(e) => sendMessage(e)}
+        onClick={(e) => {
+          if (!selectedModel) {
+            alert("Please select a model before sending.");
+            return;
+          }
+          sendMessage(e);
+        }}
+        disabled={!selectedModel}
       >
         <Send size={styles.iconSize} className="flex-shrink-0" />
       </Button>

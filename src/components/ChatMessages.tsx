@@ -1,9 +1,9 @@
-import { ChatMessage } from "@/utils/state";
+import { ChatMessage, useStore } from "@/utils/state";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-export default function ChatMessages({ messages }: { messages: ChatMessage[] | undefined }) {
-
+export default function ChatMessages({ chatid }: { chatid: string }) {
+  const messages = useStore((state) => state.conversation?.messages);
 
   if (!messages || messages.length === 0) {
     return (
@@ -15,23 +15,31 @@ export default function ChatMessages({ messages }: { messages: ChatMessage[] | u
 
   return (
     <div className="flex-1 flex-col overflow-y-auto px-4">
-      {messages.map((message) => {
+      {messages.map((message, index) => {
         if (message.role === "user") {
           return (
             <div
-              key={message.id}
-              className={`message ${message.role} flex justify-end items-end ml-auto px-4 py-2 bg-card w-fit max-w-[50%] rounded-2xl`}
+              key={message.id || `user-${index}`}
+              className="flex justify-end items-end"
             >
-              <Markdown remarkPlugins={[remarkGfm]}>{message.content}</Markdown>
+              <div
+                className={`message ${message.role} ml-auto px-4 py-2 bg-card w-fit max-w-[50%] rounded-2xl`}
+              >
+                <Markdown remarkPlugins={[remarkGfm]}>
+                  {message.content}
+                </Markdown>
+              </div>
             </div>
           );
         } else {
           return (
             <div
-              key={message.id}
+              key={message.id || `ai-${index}`}
               className={`message ${message.role} w-full`}
             >
-              <Markdown remarkPlugins={[remarkGfm]}>{message.content}</Markdown>
+              <Markdown remarkPlugins={[remarkGfm]}>
+                {message.content}
+              </Markdown>
             </div>
           );
         }

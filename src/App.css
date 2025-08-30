@@ -65,8 +65,8 @@
   --secondary-foreground: #cdd6f4;
   --muted: #292c3c;
   --muted-foreground: #a6adc8;
-  --accent: #89dceb;
-  --accent-foreground: #1e1e2e;
+  --accent: #b4a1fa;
+  --accent-foreground: #000000;
   --destructive: #f38ba8;
   --destructive-foreground: #1e1e2e;
   --border: #313244;
@@ -137,10 +137,10 @@
   --font-mono: var(--font-mono);
   --font-serif: var(--font-serif);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: calc((var(--radius) * 1.3) - 4px);
+  --radius-md: calc((var(--radius) * 1.3) - 2px);
+  --radius-lg: calc(var(--radius) * 1.3);
+  --radius-xl: calc((var(--radius) * 1.3) + 4px);
 
   --shadow-2xs: var(--shadow-2xs);
   --shadow-xs: var(--shadow-xs);

@@ -4,6 +4,7 @@ import { ChatMessage, useSidebarConversation, useStore } from "@/utils/state";
 import { getAPIKeyFromStore } from "@/utils/store";
 import OpenAI from "openai";
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 
 function createTitleFromPrompt(prompt: string) {
   const maxLength = 50;
@@ -27,7 +28,6 @@ export function useOpenRouter() {
   }, []);
 
   const sendPrompt = useCallback(async (id: string, prompt: string, model_id: string) => {
-    console.log("From", id)
     const openai = new OpenAI({
       baseURL: "https://openrouter.ai/api/v1",
       dangerouslyAllowBrowser: true,
@@ -41,10 +41,8 @@ export function useOpenRouter() {
 
       const active = useStore.getState().getConversation();
       if (!active || active.id !== id) {
-        let idCon = id || crypto.randomUUID();
-        await createConversation(idCon, createTitleFromPrompt(prompt), model_id);
-        useStore.getState().createConversation(idCon, [], model_id, createTitleFromPrompt(prompt));
-        useSidebarConversation.getState().addConversation({ id: idCon, model_id: model_id, title: createTitleFromPrompt(prompt) });
+        await useStore.getState().createConversation(id, [], model_id, createTitleFromPrompt(prompt));
+        useSidebarConversation.getState().addConversation({ id: id, model_id: model_id, title: createTitleFromPrompt(prompt) });
       }
 
 
@@ -56,7 +54,7 @@ export function useOpenRouter() {
         created_at: new Date().toISOString()
       };
       useStore.getState().addMessage(userMessage);
-      createMessage(crypto.randomUUID(), useStore.getState().getConversation()?.id ?? "", "user", userMessage.content);
+      createMessage(userMessage.id, id, "user", userMessage.content);
 
       const assistantID = crypto.randomUUID();
       const assistantMessage: ChatMessage = {
@@ -88,7 +86,7 @@ export function useOpenRouter() {
         useStore.getState().updateMessage(assistantID, accumulated);
       }
 
-      createMessage(crypto.randomUUID(), useStore.getState().getConversation()?.id ?? "", "assistant", accumulated)
+      createMessage(assistantID, id, "assistant", accumulated)
 
 
     } catch (error) {

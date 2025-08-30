@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { getConversation as dbGetConversation, getMessagesForConversation, createConversation as dbCreateConversation, deleteConversation } from "@/lib/database/methods";
 
 export type ConversationState = {
     id: string;
@@ -28,9 +29,11 @@ export type SidebarDataState = {
 export type ChatConversationsState = {
     conversation: ConversationState | null;
 
-    setConversation: (conversation: ConversationState | null) => void;
+    // Now requires a conversationId; implementation will fetch data from DB.
+    setConversation: (conversationId: string | null) => Promise<void>;
     getConversation: () => ConversationState | null;
-    createConversation: (conversationId?: string, messages?: ChatMessage[], modelId?: string, title?: string) => string;
+    // createConversation now persists to DB and returns a Promise<string> (the id)
+    createConversation: (conversationId?: string, messages?: ChatMessage[], modelId?: string, title?: string) => Promise<string>;
     updateConversation: (patch: Partial<Omit<ConversationState, "conversationId">>) => void;
     removeConversation: () => void;
 
@@ -79,14 +82,52 @@ export type Model = {
 export const useStore = create<ChatConversationsState>((set, get) => ({
     conversation: null,
 
-    setConversation: (conversation: ConversationState | null) => set(() => ({ conversation })),
+    setConversation: async (conversationId: string | null) => {
+        if (!conversationId) {
+            set(() => ({ conversation: null }));
+            return;
+        }
+
+        try {
+            const convoRows = await dbGetConversation(conversationId as string);
+            const convoRow = Array.isArray(convoRows) ? convoRows[0] : convoRows;
+
+            if (!convoRow) {
+                set(() => ({ conversation: null }));
+                return;
+            }
+
+            const messages = await getMessagesForConversation(conversationId as string);
+
+            const conversationState: ConversationState = {
+                id: convoRow.id,
+                model_id: convoRow.model_id ?? "",
+                title: convoRow.title ?? "",
+                messages: Array.isArray(messages) ? messages : [],
+            };
+
+            set(() => ({ conversation: conversationState }));
+        } catch (err) {
+            console.error("setConversation error:", err);
+            set(() => ({ conversation: null }));
+        }
+    },
 
     getConversation: () => get().conversation,
 
-    createConversation: (conversationId?: string, messages: ChatMessage[] = [], modelId?: string, title?: string) => {
+    createConversation: async (conversationId?: string, messages: ChatMessage[] = [], modelId?: string, title?: string) => {
         const id = conversationId || `conversation-${Date.now()}`;
-        const convo: ConversationState = { id: id, model_id: modelId || "", title: title || "", messages };
-        set(() => ({ conversation: convo }));
+        try {
+            await dbCreateConversation(id, title, modelId);
+            await get().setConversation(id);
+        } catch (err) {
+            // eslint-disable-next-line no-console
+            console.error("createConversation error:", err);
+            // Still set a local ephemeral conversation if DB call fails.
+            const convo: ConversationState = { id, model_id: modelId || "", title: title || "", messages };
+            set(() => ({ conversation: convo }));
+        }
+
         return id;
     },
 
@@ -97,19 +138,23 @@ export const useStore = create<ChatConversationsState>((set, get) => ({
 
     addMessage: (message: ChatMessage) =>
         set((state) => ({
-            conversation: state.conversation ? { ...state.conversation, messages: [...state.conversation.messages, message] } : state.conversation,
+            conversation: state.conversation
+                ? { ...state.conversation, messages: [...(state.conversation.messages ?? []), message] }
+                : state.conversation,
         })),
 
     updateMessage: (messageId: string, content: string) =>
         set((state) => ({
             conversation: state.conversation
-                ? { ...state.conversation, messages: state.conversation.messages.map((m) => (m.id === messageId ? { ...m, content } : m)) }
+                ? { ...state.conversation, messages: (state.conversation.messages ?? []).map((m) => (m.id === messageId ? { ...m, content } : m)) }
                 : state.conversation,
         })),
 
     removeMessage: (messageId: string) =>
         set((state) => ({
-            conversation: state.conversation ? { ...state.conversation, messages: state.conversation.messages.filter((m) => m.id !== messageId) } : state.conversation,
+            conversation: state.conversation
+                ? { ...state.conversation, messages: (state.conversation.messages ?? []).filter((m) => m.id !== messageId) }
+                : state.conversation,
         })),
 
     setMessages: (messages: ChatMessage[]) =>
@@ -118,7 +163,7 @@ export const useStore = create<ChatConversationsState>((set, get) => ({
     clearAll: () => set(() => ({ conversation: null })),
 }));
 
-export const useSidebarConversation = create<SidebarDataState>((set, get) => ({
+export const useSidebarConversation = create<SidebarDataState>((set) => ({
     conversations: [],
 
     addConversations(conversations) {
@@ -127,7 +172,16 @@ export const useSidebarConversation = create<SidebarDataState>((set, get) => ({
 
     addConversation: (conversation) => set((state) => ({ conversations: [...state.conversations, conversation] })),
 
-    removeConversation: (conversationId) => set((state) => ({ conversations: state.conversations.filter((c) => c.id !== conversationId) })),
+    removeConversation: async (conversationId) => {
+        try {
+            await deleteConversation(conversationId);
+            set((state) => ({
+                conversations: state.conversations.filter((c) => c.id !== conversationId)
+            }));
+        } catch (error) {
+            console.error("Error removing conversation:", error);
+        }
+    },
 
     updateConversation: (conversation) => set((state) => ({
         conversations: state.conversations.map((c) => (c.id === conversation.id ? { ...c, ...conversation } : c))

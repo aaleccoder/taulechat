@@ -14,6 +14,7 @@ import Home from "./components/Home";
 import { Pen } from "lucide-react";
 import { useEffect } from "react";
 import { saveModelsToStore } from "./utils/store";
+import { Toaster } from "./components/ui/sonner";
 
 function App() {
 
@@ -58,6 +59,7 @@ function App() {
               <Route path="/test" element={<TestComponent />} />
             </Routes>
           </main>
+          <Toaster />
         </SidebarInset>
       </SidebarProvider>
     </ThemeProvider>
