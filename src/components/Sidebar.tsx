@@ -126,26 +126,10 @@ export default function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <Link to="/profile" className="flex items-center gap-2">
-                <User size={styles.iconSize} />
-                <span>Profile</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <Link to="/settings" className="flex items-center gap-2">
+              <Button onClick={() => { navigate("/settings") }} className="flex items-center gap-2">
                 <Settings size={styles.iconSize} />
                 <span>Settings</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <Link to="/test" className="flex items-center gap-2">
-                <TestTube size={styles.iconSize} />
-                <span>Test</span>
-              </Link>
+              </Button>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

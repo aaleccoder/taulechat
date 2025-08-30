@@ -15,6 +15,7 @@ import { Pen } from "lucide-react";
 import { useEffect } from "react";
 import { saveModelsToStore } from "./utils/store";
 import { Toaster } from "./components/ui/sonner";
+import { motion } from "motion/react"
 
 function App() {
 
@@ -50,7 +51,8 @@ function App() {
               <Pen className="h-4 w-4" />
             </Link>
           </header>
-          <main className="flex flex-1 flex-col gap-4 px-4 mt-4 overflow-y-hidden">
+          <main className="flex flex-1 flex-col gap-4 px-4 mt-4 overflow-y-hidden"
+          >
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/chat/:id" element={<ChatScreen />} />
@@ -58,11 +60,12 @@ function App() {
               <Route path="/settings" element={<SettingsScreen />} />
               <Route path="/test" element={<TestComponent />} />
             </Routes>
+
           </main>
           <Toaster />
         </SidebarInset>
       </SidebarProvider>
-    </ThemeProvider>
+    </ThemeProvider >
   );
 }
 
