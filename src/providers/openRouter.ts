@@ -22,12 +22,11 @@ export function useOpenRouter({ id }: { id: string }) {
     const loadKey = async () => {
       const key = await getAPIKeyFromStore(ProviderName.OpenRouter);
       setText(key || "");
-      console.log(key);
     };
     loadKey();
   }, []);
 
-  const sendPrompt = useCallback(async (prompt: string) => {
+  const sendPrompt = useCallback(async (prompt: string, model_id: string) => {
     const openai = new OpenAI({
       baseURL: "https://openrouter.ai/api/v1",
       dangerouslyAllowBrowser: true,
@@ -40,14 +39,13 @@ export function useOpenRouter({ id }: { id: string }) {
       let accumulated = "";
 
       const active = useStore.getState().getConversation();
+      console.log(active?.id);
+      console.log(id);
       if (!active || active.id !== id) {
         let idCon = id || crypto.randomUUID();
         await createConversation(idCon);
         useStore.getState().createConversation(idCon);
-
-
-
-        useSidebarConversation.getState().addConversation({ id: idCon, model_id: "", title: createTitleFromPrompt(prompt) });
+        useSidebarConversation.getState().addConversation({ id: idCon, model_id: model_id, title: createTitleFromPrompt(prompt) });
       }
 
 
@@ -79,7 +77,7 @@ export function useOpenRouter({ id }: { id: string }) {
       })) || [];
 
       const stream = await openai.chat.completions.create({
-        model: "z-ai/glm-4.5-air:free",
+        model: model_id,
         messages: storeMessages,
         stream: true,
       });

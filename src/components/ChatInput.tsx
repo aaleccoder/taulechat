@@ -9,14 +9,37 @@ import { useOpenRouter } from "@/providers/openRouter";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { styles } from "@/constants/style";
-import { Model } from "@/utils/state";
+import { Model, useStore } from "@/utils/state";
 import { getModelsFromStore } from "@/utils/store";
 
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Drawer, DrawerContent, DrawerTrigger } from "./ui/drawer";
+import React from "react";
+
 export default function ChatInput({ id }: { id: string }) {
-  const { sendPrompt } = useOpenRouter({ id });
 
   const [userInput, setUserInput] = useState("");
   const [models, setModels] = useState<Model[]>([]);
+  const [open, setOpen] = useState(false)
+  const [selectedModel, setSelectedModel] = useState<Model | null>(
+    null
+  )
+  const { sendPrompt } = useOpenRouter({ id });
+
+
 
 
   useEffect(() => {
@@ -41,7 +64,7 @@ export default function ChatInput({ id }: { id: string }) {
   const sendMessage = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     if (!userInput.trim()) return;
-    sendPrompt(userInput.trim());
+    sendPrompt(userInput.trim(), selectedModel?.id ?? "");
     setUserInput("");
   };
 
@@ -71,19 +94,31 @@ export default function ChatInput({ id }: { id: string }) {
           >
             <Paperclip size={styles.iconSize} className="flex-shrink-0" />
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant={"outline"} className="">
-                <span>Model</span>
-                <ChevronDown size={styles.iconSize} className="flex-shrink-0" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" side="top" className="w-56">
-              {models.map((model) => (
-                <DropdownMenuItem key={model.id}>{model.name ?? model.id}</DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {!useIsMobile() ? (
+            <div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button className="flex items-center justify-center h-8 px-3 rounded-full" variant="outline" >
+                    {selectedModel ? <>{selectedModel.name}</> : <>Set model</>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[200px] p-0">
+                  <ModelsList models={models} setSelectedModel={setSelectedModel} />
+                </PopoverContent>
+              </Popover>
+            </div>
+          ) : (
+            <Drawer open={open} onOpenChange={setOpen}>
+              <DrawerTrigger asChild>
+                <Button variant={"outline"} className="flex items-center justify-center h-8 px-3 rounded-full">
+                  {selectedModel ? <>{selectedModel.name}</> : <>+ Set model</>}
+                </Button>
+              </DrawerTrigger>
+              <DrawerContent className="w-[200px] p-0">
+                <ModelsList models={models} setSelectedModel={setSelectedModel} />
+              </DrawerContent>
+            </Drawer>
+          )}
         </div>
       </div>
 
@@ -95,4 +130,25 @@ export default function ChatInput({ id }: { id: string }) {
       </Button>
     </form >
   );
+}
+
+
+function ModelsList({ models, setSelectedModel }: { models: Model[], setSelectedModel: (model: Model) => void }) {
+  return (
+    <Command>
+      <CommandInput placeholder="Search model..." />
+      <CommandList>
+        <CommandEmpty>No model found.</CommandEmpty>
+        <CommandGroup>
+          {models.map((model) => (
+            <CommandItem key={model.id} onSelect={() => {
+              setSelectedModel(model);
+            }}>
+              {model.name}
+            </CommandItem>
+          ))}
+        </CommandGroup>
+      </CommandList>
+    </Command>
+  )
 }
