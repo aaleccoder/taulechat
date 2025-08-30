@@ -14,7 +14,7 @@ function createTitleFromPrompt(prompt: string) {
 }
 
 
-export function useOpenRouter({ id }: { id: string }) {
+export function useOpenRouter() {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -26,7 +26,8 @@ export function useOpenRouter({ id }: { id: string }) {
     loadKey();
   }, []);
 
-  const sendPrompt = useCallback(async (prompt: string, model_id: string) => {
+  const sendPrompt = useCallback(async (id: string, prompt: string, model_id: string) => {
+    console.log("From", id)
     const openai = new OpenAI({
       baseURL: "https://openrouter.ai/api/v1",
       dangerouslyAllowBrowser: true,
@@ -39,12 +40,10 @@ export function useOpenRouter({ id }: { id: string }) {
       let accumulated = "";
 
       const active = useStore.getState().getConversation();
-      console.log(active?.id);
-      console.log(id);
       if (!active || active.id !== id) {
         let idCon = id || crypto.randomUUID();
-        await createConversation(idCon);
-        useStore.getState().createConversation(idCon);
+        await createConversation(idCon, createTitleFromPrompt(prompt), model_id);
+        useStore.getState().createConversation(idCon, [], model_id, createTitleFromPrompt(prompt));
         useSidebarConversation.getState().addConversation({ id: idCon, model_id: model_id, title: createTitleFromPrompt(prompt) });
       }
 

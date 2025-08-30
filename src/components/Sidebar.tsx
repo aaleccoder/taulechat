@@ -27,7 +27,6 @@ export default function AppSidebar() {
 
   const handleChatClick = (chatId: string) => {
     navigate(`/chat/${chatId}`);
-    useStore.getState().clearAll();
   };
 
   useEffect(() => {

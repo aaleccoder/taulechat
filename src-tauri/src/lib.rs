@@ -16,6 +16,7 @@ pub fn run() {
         CREATE TABLE conversations (
             id              TEXT PRIMARY KEY,
             title           TEXT,                   -- e.g. \"Project brainstorm\"
+            model_id        TEXT,
             created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP
         );

@@ -1,10 +1,4 @@
-import { Send, Paperclip, ChevronDown } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
+import { Send, Paperclip } from "lucide-react";
 import { useOpenRouter } from "@/providers/openRouter";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -37,7 +31,7 @@ export default function ChatInput({ id }: { id: string }) {
   const [selectedModel, setSelectedModel] = useState<Model | null>(
     null
   )
-  const { sendPrompt } = useOpenRouter({ id });
+  const { sendPrompt } = useOpenRouter();
 
 
 
@@ -64,7 +58,7 @@ export default function ChatInput({ id }: { id: string }) {
   const sendMessage = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     if (!userInput.trim()) return;
-    sendPrompt(userInput.trim(), selectedModel?.id ?? "");
+    sendPrompt(id, userInput.trim(), selectedModel?.id ?? "");
     setUserInput("");
   };
 

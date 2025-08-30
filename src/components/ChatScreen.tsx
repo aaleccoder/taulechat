@@ -10,10 +10,13 @@ export default function ChatScreen() {
   const id = params.id;
 
 
+
   let messagesState = useStore((state) => state.conversation?.messages);
 
   useEffect(() => {
+    useStore.getState().clearAll();
     let mounted = true;
+    console.log(id);
     if (!id) {
       useStore.getState().setMessages([]);
       return;
@@ -39,7 +42,7 @@ export default function ChatScreen() {
   return (
     <div className="flex flex-col h-full bg-background justify-end">
       <ChatMessages messages={messagesState} />
-      <ChatInput id={id ?? ""} />
+      <ChatInput id={id ? id : ""} />
     </div>
   );
 }

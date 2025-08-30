@@ -4,8 +4,8 @@ import { db } from "./connection";
 // ------------------------- Conversations CRUD -------------------------
 
 // Note: id is now a string (UUID). When creating from frontend, pass the generated id.
-export function createConversation(id: string, title?: string) {
-    return db.execute("INSERT INTO conversations (id, title) VALUES ($1, $2)", [id, title]);
+export function createConversation(id: string, title?: string, model_id?: string) {
+    return db.execute("INSERT INTO conversations (id, title, model_id) VALUES ($1, $2, $3)", [id, title, model_id]);
 }
 
 export function getConversation(id: string) {

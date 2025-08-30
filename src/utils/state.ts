@@ -30,7 +30,7 @@ export type ChatConversationsState = {
 
     setConversation: (conversation: ConversationState | null) => void;
     getConversation: () => ConversationState | null;
-    createConversation: (conversationId?: string, messages?: ChatMessage[]) => string;
+    createConversation: (conversationId?: string, messages?: ChatMessage[], modelId?: string, title?: string) => string;
     updateConversation: (patch: Partial<Omit<ConversationState, "conversationId">>) => void;
     removeConversation: () => void;
 
@@ -83,9 +83,9 @@ export const useStore = create<ChatConversationsState>((set, get) => ({
 
     getConversation: () => get().conversation,
 
-    createConversation: (conversationId?: string, messages: ChatMessage[] = []) => {
+    createConversation: (conversationId?: string, messages: ChatMessage[] = [], modelId?: string, title?: string) => {
         const id = conversationId || `conversation-${Date.now()}`;
-        const convo: ConversationState = { id: id, model_id: "", title: "", messages };
+        const convo: ConversationState = { id: id, model_id: modelId || "", title: title || "", messages };
         set(() => ({ conversation: convo }));
         return id;
     },
