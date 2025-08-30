@@ -14,7 +14,7 @@ export default function ChatMessages({ chatid }: { chatid: string }) {
   }
 
   return (
-    <div className="flex-1 flex-col overflow-y-auto px-4">
+    <div className="flex flex-col px-4 py-4">
       {messages.map((message, index) => {
         if (message.role === "user") {
           return (

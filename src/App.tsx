@@ -50,7 +50,7 @@ function App() {
               <Pen className="h-4 w-4" />
             </Link>
           </header>
-          <main className="flex flex-1 flex-col gap-4 px-4 mt-4">
+          <main className="flex flex-1 flex-col gap-4 px-4 mt-4 overflow-y-hidden">
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/chat/:id" element={<ChatScreen />} />

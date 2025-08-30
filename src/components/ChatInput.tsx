@@ -81,8 +81,8 @@ export default function ChatInput({ id }: { id: string }) {
   };
 
   return (
-    <form className="flex flex-row justify-center items-center space-x-4 p-2 rounded-t-2xl w-full bg-card">
-      <div className="bg-background flex-1 px-4 py-2 rounded-xl relative flex-col items-center space-y-4">
+    <form className="flex flex-row justify-center items-center space-x-4 rounded-2xl shadow-2xl w-full z-50 p-2 relative bg-card mb-4">
+      <div className="bg-background flex-1 px-4 py-2 rounded-xl flex-col items-center space-y-4 w-full">
         <textarea
           ref={(el) => {
             if (el) {

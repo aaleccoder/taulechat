@@ -38,8 +38,10 @@ export default function ChatScreen() {
   }, [id]);
 
   return (
-    <div className="flex flex-col h-full bg-background justify-end">
-      <ChatMessages chatid={id ? id : ""} />
+    <div className="flex flex-col h-[90vh] overflow-y-auto bg-background">
+      <div className="flex-1 overflow-y-auto">
+        <ChatMessages chatid={id ? id : ""} />
+      </div>
       <ChatInput id={id ? id : ""} />
     </div>
   );
