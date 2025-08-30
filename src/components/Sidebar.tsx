@@ -87,7 +87,7 @@ export default function AppSidebar() {
                 <SidebarMenuItem key={chat.id} className="flex flex-row">
                   <SidebarMenuButton
                     onClick={() => handleChatClick(chat.id)}
-                    className={`w-full justify-start ${chat.id === activeChat ? "!bg-card" : ""}`}
+                    className={`w-full justify-start ${chat.id === activeChat ? "!bg-card hover:text-white" : ""}`}
                   >
                     <div className="flex flex-row gap-1 w-full items-center">
                       <div className="flex items-center justify-between w-full">
@@ -99,8 +99,8 @@ export default function AppSidebar() {
                   </SidebarMenuButton>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <SidebarMenuAction>
-                        <MoreHorizontal />
+                      <SidebarMenuAction className="hover:bg-muted">
+                        <MoreHorizontal className="h-4 w-4 text-white" />
                       </SidebarMenuAction>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent side="top" align="start">
@@ -109,9 +109,10 @@ export default function AppSidebar() {
                           setChatToDelete(chat.id);
                           setDeleteDialogOpen(true);
                         }}
+                        className=""
                       >
                         <span className="w-full">Delete</span>
-                        <Trash className="ml-2" />
+                        <Trash className="ml-2 text-destructive" />
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
