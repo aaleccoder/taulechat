@@ -1,9 +1,10 @@
-import { ChatMessage, useStore } from "@/utils/state";
+import { ChatMessage, useLoading, useStore } from "@/utils/state";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 export default function ChatMessages({ chatid }: { chatid: string }) {
   const messages = useStore((state) => state.conversation?.messages);
+  const loading = useLoading((state) => state.loading);
 
   if (!messages || messages.length === 0) {
     return (
@@ -37,9 +38,17 @@ export default function ChatMessages({ chatid }: { chatid: string }) {
               key={message.id || `ai-${index}`}
               className={`message ${message.role} w-full`}
             >
-              <Markdown remarkPlugins={[remarkGfm]}>
-                {message.content}
-              </Markdown>
+              {loading && index === messages.length - 1 ? (
+                <div className="flex items-center space-x-1 py-2">
+                  <span className="dot bg-muted rounded-full w-2 h-2 animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <span className="dot bg-muted rounded-full w-2 h-2 animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <span className="dot bg-muted rounded-full w-2 h-2 animate-bounce" style={{ animationDelay: "300ms" }} />
+                </div>
+              ) : (
+                <Markdown remarkPlugins={[remarkGfm]}>
+                  {message.content}
+                </Markdown>
+              )}
             </div>
           );
         }

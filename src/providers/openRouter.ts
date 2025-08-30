@@ -1,10 +1,11 @@
 import { ProviderName } from "@/components/Settings";
 import { createConversation, createMessage } from "@/lib/database/methods";
-import { ChatMessage, useSidebarConversation, useStore } from "@/utils/state";
+import { ChatMessage, useLoading, useSidebarConversation, useStore } from "@/utils/state";
 import { getAPIKeyFromStore } from "@/utils/store";
 import OpenAI from "openai";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
+import { toast } from "sonner";
 
 function createTitleFromPrompt(prompt: string) {
   const maxLength = 50;
@@ -18,6 +19,7 @@ function createTitleFromPrompt(prompt: string) {
 export function useOpenRouter() {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const loadKey = async () => {
@@ -35,12 +37,14 @@ export function useOpenRouter() {
       apiKey: await getAPIKeyFromStore(ProviderName.OpenRouter),
     });
 
+    let isNewConversation = false;
     try {
-      setLoading(true);
+      useLoading.getState().setLoading(true);
       let accumulated = "";
 
       const active = useStore.getState().getConversation();
-      if (!active || active.id !== id) {
+      if (active === null || active.id !== id) {
+        isNewConversation = true;
         await useStore.getState().createConversation(id, [], model_id, createTitleFromPrompt(prompt));
         useSidebarConversation.getState().addConversation({ id: id, model_id: model_id, title: createTitleFromPrompt(prompt) });
       }
@@ -91,8 +95,18 @@ export function useOpenRouter() {
 
     } catch (error) {
       console.error("Error sending prompt:", error);
+      const apiError = error as any;
+      if (apiError.status === 401) {
+        toast.error("Please provide a valid OpenRouter API key");
+      } else if (apiError.status === 429) {
+        toast.error("You have hit the rate limit. Please try again later.");
+      }
+      if (isNewConversation && (apiError.status === 401 || apiError.status === 429)) {
+        useSidebarConversation.getState().removeConversation(id);
+        useStore.getState().removeConversation();
+      }
     } finally {
-      setLoading(false);
+      useLoading.getState().setLoading(false);
     }
   }, []);
 

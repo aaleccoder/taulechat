@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { styles } from "@/constants/style";
-import { Model, useStore } from "@/utils/state";
+import { Model, useSidebarConversation, useStore } from "@/utils/state";
 import { getModelsFromStore } from "@/utils/store";
 
 import {
@@ -71,7 +71,6 @@ export default function ChatInput({ id }: { id: string }) {
     if (!chatId) {
       const newId = crypto.randomUUID();
       sendPrompt(newId, userInput.trim(), selectedModel?.id ?? "");
-      console.log("New conversation created:", newId);
       navigate(`/chat/${newId}`);
     } else {
       sendPrompt(chatId, userInput.trim(), selectedModel?.id ?? "");

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { getConversation as dbGetConversation, getMessagesForConversation, createConversation as dbCreateConversation, deleteConversation } from "@/lib/database/methods";
+import { useState } from "react";
 
 export type ConversationState = {
     id: string;
@@ -17,9 +18,22 @@ export type ChatMessage = {
     created_at: string;
 };
 
+export type LoadingStates = {
+    loading: boolean;
+    setLoading: (loading: boolean) => void;
+};
+
+export const useLoading = create<LoadingStates>((set) => ({
+    loading: false,
+    setLoading: (loading: boolean) => set({ loading }),
+}));
+
 
 export type SidebarDataState = {
     conversations: Omit<ConversationState, 'messages'>[];
+    activeChat: string | null;
+
+    setActiveChat: (chatId: string) => void;
     addConversation: (conversation: Omit<ConversationState, 'messages'>) => void;
     addConversations: (conversations: Omit<ConversationState, 'messages'>[]) => void;
     removeConversation: (conversationId: string) => void;
@@ -165,10 +179,14 @@ export const useStore = create<ChatConversationsState>((set, get) => ({
 
 export const useSidebarConversation = create<SidebarDataState>((set) => ({
     conversations: [],
+    activeChat: null,
 
     addConversations(conversations) {
         set((state) => ({ conversations: [...state.conversations, ...conversations] }));
     },
+
+
+    setActiveChat: (chatId: string) => set(() => ({ activeChat: chatId })),
 
     addConversation: (conversation) => set((state) => ({ conversations: [...state.conversations, conversation] })),
 

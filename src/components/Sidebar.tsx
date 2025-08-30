@@ -30,14 +30,14 @@ export default function AppSidebar() {
 
   const conversations = useSidebarConversation((state) => state.conversations) || [];
 
-  const [activeChat, setActiveChat] = useState("");
+  const activeChat = useSidebarConversation((state) => state.activeChat || null);
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [chatToDelete, setChatToDelete] = useState<string | null>(null);
 
 
   const handleChatClick = (chatId: string) => {
-    setActiveChat(chatId);
+    useSidebarConversation.getState().setActiveChat(chatId);
     navigate(`/chat/${chatId}`);
   };
 
@@ -83,7 +83,8 @@ export default function AppSidebar() {
           <SidebarGroupLabel>Chats</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {conversations.map((chat) => (
+              {conversations.length === 0 && <div className="px-2 py-2 text-muted-foreground">No conversations found.</div>}
+              {conversations.length > 0 && conversations.map((chat) => (
                 <SidebarMenuItem key={chat.id} className="flex flex-row">
                   <SidebarMenuButton
                     onClick={() => handleChatClick(chat.id)}
