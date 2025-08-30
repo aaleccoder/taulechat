@@ -1,5 +1,5 @@
 import { Send, Paperclip } from "lucide-react";
-import { useOpenRouter } from "@/providers/openRouter";
+import { useOpenRouter } from "@/providers/providers-service";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
@@ -41,7 +41,7 @@ export default function ChatInput({ id }: { id: string }) {
       try {
         const fetchedModels = await getModelsFromStore();
         console.log(fetchedModels);
-        setModels(fetchedModels ?? []);
+        setModels(fetchedModels);
       } catch (error) {
         console.error("Error fetching models:", error);
 
@@ -152,20 +152,36 @@ export default function ChatInput({ id }: { id: string }) {
 
 
 function ModelsList({ models, setSelectedModel }: { models: Model[], setSelectedModel: (model: Model) => void }) {
+  const openRouterModels = models.filter(model => model.provider === 'OpenRouter');
+  const geminiModels = models.filter(model => model.provider === 'Gemini');
+
   return (
     <Command>
       <CommandInput placeholder="Search model..." />
       <CommandList>
         <CommandEmpty>No model found.</CommandEmpty>
-        <CommandGroup>
-          {models.map((model) => (
-            <CommandItem key={model.id} onSelect={() => {
-              setSelectedModel(model);
-            }}>
-              {model.name}
-            </CommandItem>
-          ))}
-        </CommandGroup>
+        {openRouterModels.length > 0 && (
+          <CommandGroup heading="OpenRouter Models">
+            {openRouterModels.map((model) => (
+              <CommandItem key={model.id} onSelect={() => {
+                setSelectedModel(model);
+              }}>
+                {model.name}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+        {geminiModels.length > 0 && (
+          <CommandGroup heading="Gemini Models">
+            {geminiModels.map((model) => (
+              <CommandItem key={model.id} onSelect={() => {
+                setSelectedModel(model);
+              }}>
+                {model.name}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
       </CommandList>
     </Command>
   )

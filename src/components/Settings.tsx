@@ -1,18 +1,19 @@
-import { getAPIKeyFromStore, saveAPIKeyToStore } from "@/utils/store";
+import { getAPIKeyFromStore, saveAPIKeyToStore, getModelsFromStore, addGeminiModel, removeModel } from "@/utils/store";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Plus, Trash2 } from "lucide-react";
+import { Model } from "@/utils/state";
 
 export enum ProviderName {
 	OpenRouter = "OpenRouter",
-	Provider2 = "Provider 2",
+	Gemini = "Gemini",
 }
 
 const defaultApiKeys: Record<ProviderName, string> = {
 	[ProviderName.OpenRouter]: "openrouter key",
-	[ProviderName.Provider2]: "provider2 key",
+	[ProviderName.Gemini]: "gemini key",
 };
 
 export default function SettingsScreen() {
@@ -29,6 +30,8 @@ export default function SettingsScreen() {
 			boolean
 		>
 	);
+	const [models, setModels] = useState<Model[]>([]);
+	const [geminiModelId, setGeminiModelId] = useState<string>("");
 
 	useEffect(() => {
 		const loadKeys = async () => {
@@ -45,6 +48,14 @@ export default function SettingsScreen() {
 			setApiKeys(newApiKeys);
 		};
 		loadKeys();
+	}, []);
+
+	useEffect(() => {
+		const loadModels = async () => {
+			const fetchedModels = await getModelsFromStore();
+			setModels(fetchedModels);
+		};
+		loadModels();
 	}, []);
 
 	return (
@@ -80,6 +91,62 @@ export default function SettingsScreen() {
 						</Button>
 					</div>
 				))}
+			</div>
+
+			{/* Gemini Models Section */}
+			<div className="mt-8">
+				<h2 className="text-xl font-bold mb-4">Gemini Models</h2>
+				<div className="p-4 border border-border rounded-lg bg-card shadow-sm mb-4">
+					<Label className="text-lg font-semibold mb-2 block text-card-foreground">
+						Add Gemini Model
+					</Label>
+					<div className="flex items-center space-x-2">
+						<Input
+							type="text"
+							value={geminiModelId}
+							onChange={(e) => setGeminiModelId(e.target.value)}
+							placeholder="Enter Gemini model ID (e.g., gemini-1.5-flash)"
+							className="flex-1"
+						/>
+						<Button
+							onClick={async () => {
+								if (geminiModelId.trim()) {
+									await addGeminiModel(geminiModelId.trim());
+									setGeminiModelId("");
+									// Reload models
+									const fetchedModels = await getModelsFromStore();
+									setModels(fetchedModels);
+								}
+							}}
+							variant="default"
+						>
+							<Plus className="h-4 w-4 mr-2" />
+							Add
+						</Button>
+					</div>
+				</div>
+				<div className="space-y-2">
+					{models.filter(model => model.provider === 'Gemini').map((model) => (
+						<div key={model.id} className="p-4 border border-border rounded-lg bg-card shadow-sm flex items-center justify-between">
+							<div>
+								<p className="font-semibold">{model.name}</p>
+								<p className="text-sm text-muted-foreground">{model.id}</p>
+							</div>
+							<Button
+								onClick={async () => {
+									await removeModel(model.id);
+									// Reload models
+									const fetchedModels = await getModelsFromStore();
+									setModels(fetchedModels);
+								}}
+								variant="destructive"
+								size="sm"
+							>
+								<Trash2 className="h-4 w-4" />
+							</Button>
+						</div>
+					))}
+				</div>
 			</div>
 		</div>
 	);

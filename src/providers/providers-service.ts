@@ -1,7 +1,7 @@
 import { ProviderName } from "@/components/Settings";
 import { createConversation, createMessage } from "@/lib/database/methods";
 import { ChatMessage, useLoading, useSidebarConversation, useStore } from "@/utils/state";
-import { getAPIKeyFromStore } from "@/utils/store";
+import { getAPIKeyFromStore, getModelById } from "@/utils/store";
 import OpenAI from "openai";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
@@ -22,19 +22,23 @@ export function useOpenRouter() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const loadKey = async () => {
-      const key = await getAPIKeyFromStore(ProviderName.OpenRouter);
-      setText(key || "");
+    const loadKeys = async () => {
+      const openRouterKey = await getAPIKeyFromStore(ProviderName.OpenRouter);
+      const geminiKey = await getAPIKeyFromStore(ProviderName.Gemini);
+      // Store keys in state or use as needed
+      setText(openRouterKey || geminiKey || "");
     };
-    loadKey();
+    loadKeys();
   }, []);
 
   const sendPrompt = useCallback(async (id: string, prompt: string, model_id: string) => {
-    const openai = new OpenAI({
-      baseURL: "https://openrouter.ai/api/v1",
-      dangerouslyAllowBrowser: true,
+    const model = await getModelById(model_id);
+    const isGemini = model?.provider === 'Gemini';
 
-      apiKey: await getAPIKeyFromStore(ProviderName.OpenRouter),
+    const openai = new OpenAI({
+      baseURL: isGemini ? "https://generativelanguage.googleapis.com/v1beta/openai/" : "https://openrouter.ai/api/v1",
+      dangerouslyAllowBrowser: true,
+      apiKey: await getAPIKeyFromStore(isGemini ? ProviderName.Gemini : ProviderName.OpenRouter),
     });
 
     let isNewConversation = false;
@@ -97,7 +101,7 @@ export function useOpenRouter() {
       console.error("Error sending prompt:", error);
       const apiError = error as any;
       if (apiError.status === 401) {
-        toast.error("Please provide a valid OpenRouter API key");
+        toast.error(`Please provide a valid ${isGemini ? 'Gemini' : 'OpenRouter'} API key`);
       } else if (apiError.status === 429) {
         toast.error("You have hit the rate limit. Please try again later.");
       }

@@ -13,9 +13,8 @@ import TestComponent from "./components/testcomponent";
 import Home from "./components/Home";
 import { Pen } from "lucide-react";
 import { useEffect } from "react";
-import { saveModelsToStore } from "./utils/store";
+import { saveOpenRouterModelsToStore } from "./utils/store";
 import { Toaster } from "./components/ui/sonner";
-import { motion } from "motion/react"
 
 function App() {
 
@@ -27,8 +26,13 @@ function App() {
         throw new Error("Failed to fetch models");
       }
       const data = await res.json();
+      // Add provider field to models
+      const modelsWithProvider = data.data.map((model: any) => ({
+        ...model,
+        provider: 'OpenRouter' as const
+      }));
       // store only the models array (data.data)
-      await saveModelsToStore(data.data);
+      await saveOpenRouterModelsToStore(modelsWithProvider);
     }
 
     fetchData();
