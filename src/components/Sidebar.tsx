@@ -14,7 +14,7 @@ import { styles } from "@/constants/style";
 import { getAllConversations } from "@/lib/database/methods";
 import { useSidebarConversation, useStore } from "@/utils/state";
 import { MessageCircle, Settings, TestTube, User } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 
 
@@ -24,8 +24,11 @@ export default function AppSidebar() {
 
   const conversations = useSidebarConversation((state) => state.conversations) || [];
 
+  const [activeChat, setActiveChat] = useState("");
+
 
   const handleChatClick = (chatId: string) => {
+    setActiveChat(chatId);
     navigate(`/chat/${chatId}`);
   };
 
@@ -62,7 +65,7 @@ export default function AppSidebar() {
                 <SidebarMenuItem key={chat.id}>
                   <SidebarMenuButton
                     onClick={() => handleChatClick(chat.id)}
-                    className="w-full justify-start !bg-card"
+                    className={`w-full justify-start ${chat.id === activeChat ? "!bg-card" : ""}`}
                   >
                     <div className="flex flex-col items-start gap-1 w-full ">
                       <div className="flex items-center justify-between w-full">
