@@ -1,6 +1,11 @@
 import { useLoading, useStore } from "@/utils/state";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import rehypeKatex from "rehype-katex";
+import remarkMath from "remark-math";
+import "katex/dist/katex.min.css";
 
 export default function ChatMessages() {
   const messages = useStore((state) => state.conversation?.messages);
@@ -26,9 +31,31 @@ export default function ChatMessages() {
               <div
                 className={`message ${message.role} ml-auto px-4 py-2 bg-card w-fit max-w-[50%] rounded-2xl`}
               >
-                <Markdown remarkPlugins={[remarkGfm]}>
-                  {message.content}
-                </Markdown>
+                <Markdown
+                  children={message.content}
+                  remarkPlugins={[remarkGfm, remarkMath]}
+                  rehypePlugins={[rehypeKatex]}
+                  components={{
+                    code(props) {
+                      const { children, className, node, ...rest } = props;
+                      const match = /language-(\w+)/.exec(className || "");
+                      return match ? (
+                        // @ts-ignore
+                        <SyntaxHighlighter
+                          {...rest}
+                          PreTag="div"
+                          children={String(children).replace(/\n$/, "")}
+                          language={match[1]}
+                          style={atomDark}
+                        />
+                      ) : (
+                        <code {...rest} className={className}>
+                          {children}
+                        </code>
+                      );
+                    },
+                  }}
+                />
               </div>
             </div>
           );
@@ -40,14 +67,45 @@ export default function ChatMessages() {
             >
               {loading && index === messages.length - 1 ? (
                 <div className="flex items-center space-x-1 py-2">
-                  <span className="dot bg-muted rounded-full w-2 h-2 animate-bounce" style={{ animationDelay: "0ms" }} />
-                  <span className="dot bg-muted rounded-full w-2 h-2 animate-bounce" style={{ animationDelay: "150ms" }} />
-                  <span className="dot bg-muted rounded-full w-2 h-2 animate-bounce" style={{ animationDelay: "300ms" }} />
+                  <span
+                    className="dot bg-muted rounded-full w-2 h-2 animate-bounce"
+                    style={{ animationDelay: "0ms" }}
+                  />
+                  <span
+                    className="dot bg-muted rounded-full w-2 h-2 animate-bounce"
+                    style={{ animationDelay: "150ms" }}
+                  />
+                  <span
+                    className="dot bg-muted rounded-full w-2 h-2 animate-bounce"
+                    style={{ animationDelay: "300ms" }}
+                  />
                 </div>
               ) : (
-                <Markdown remarkPlugins={[remarkGfm]}>
-                  {message.content}
-                </Markdown>
+                <Markdown
+                  children={message.content}
+                  remarkPlugins={[remarkGfm, remarkMath]}
+                  rehypePlugins={[rehypeKatex]}
+                  components={{
+                    code(props) {
+                      const { children, className, node, ...rest } = props;
+                      const match = /language-(\w+)/.exec(className || "");
+                      return match ? (
+                        // @ts-ignore
+                        <SyntaxHighlighter
+                          {...rest}
+                          PreTag="div"
+                          children={String(children).replace(/\n$/, "")}
+                          language={match[1]}
+                          style={atomDark}
+                        />
+                      ) : (
+                        <code {...rest} className={className}>
+                          {children}
+                        </code>
+                      );
+                    },
+                  }}
+                />
               )}
             </div>
           );
