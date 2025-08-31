@@ -31,6 +31,7 @@
     "sql:default",
     "sql:allow-select",
     "sql:allow-execute",
-    "store:default"
+    "store:default",
+    "dialog:default"
   ]
 }

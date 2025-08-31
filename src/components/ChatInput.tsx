@@ -29,6 +29,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Drawer, DrawerContent, DrawerTrigger } from "./ui/drawer";
 import React from "react";
 import { toast } from "sonner";
+import { open as openFile } from "@tauri-apps/plugin-dialog";
 
 export default function ChatInput({ id }: { id: string }) {
   const [userInput, setUserInput] = useState("");
@@ -79,6 +80,17 @@ export default function ChatInput({ id }: { id: string }) {
     setUserInput("");
   };
 
+  async function handleFileUpload(e: React.MouseEvent<HTMLButtonElement>) {
+    e.preventDefault();
+
+    const file = await openFile({
+      mutiple: false,
+      directory: false,
+    });
+
+    console.log(file);
+  }
+
   return (
     <form className="flex flex-row justify-center items-center space-x-4 rounded-2xl shadow-2xl w-full z-50 p-2 relative bg-card mb-4">
       <div className="bg-background flex-1 px-4 py-2 rounded-xl flex-col items-center space-y-4 w-full">
@@ -102,6 +114,7 @@ export default function ChatInput({ id }: { id: string }) {
           <Button
             className="flex items-center justify-center h-8 w-8"
             tabIndex={-1}
+            onClick={(e) => handleFileUpload(e)}
           >
             <Paperclip size={styles.iconSize} className="flex-shrink-0" />
           </Button>
