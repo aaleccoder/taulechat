@@ -138,7 +138,7 @@ export function useOpenRouter() {
             break;
           }
 
-          console.log(chunk);
+          const chunk = decoder.decode(value, { stream: true });
           const lines = chunk
             .split("\n")
             .filter((line) => line.startsWith("data: "));
@@ -160,6 +160,7 @@ export function useOpenRouter() {
           }
         }
 
+        useSidebarConversation.getState().setActiveChat(id);
         createMessage(assistantID, id, "assistant", accumulated);
       } catch (error) {
         console.error("Error sending prompt:", error);

@@ -1,11 +1,15 @@
-import { Send, Paperclip } from "lucide-react";
+import { Send, Paperclip, Star } from "lucide-react";
 import { useOpenRouter } from "@/providers/providers-service";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { styles } from "@/constants/style";
 import { Model, useStore } from "@/utils/state";
-import { getModelsFromStore } from "@/utils/store";
+import {
+  getDefaultModel,
+  getModelsFromStore,
+  saveDefaultModel,
+} from "@/utils/store";
 
 import {
   Command,
@@ -14,27 +18,25 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command"
+  CommandShortcut,
+} from "@/components/ui/command";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
+} from "@/components/ui/popover";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Drawer, DrawerContent, DrawerTrigger } from "./ui/drawer";
 import React from "react";
+import { toast } from "sonner";
 
 export default function ChatInput({ id }: { id: string }) {
   const [userInput, setUserInput] = useState("");
   const [models, setModels] = useState<Model[]>([]);
-  const [open, setOpen] = useState(false)
-  const [selectedModel, setSelectedModel] = useState<Model | null>(
-    null
-  )
+  const [open, setOpen] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const { sendPrompt } = useOpenRouter();
   const navigate = useNavigate();
-
-
 
   useEffect(() => {
     const loadModels = async () => {
@@ -44,24 +46,27 @@ export default function ChatInput({ id }: { id: string }) {
         setModels(fetchedModels);
       } catch (error) {
         console.error("Error fetching models:", error);
-
       }
     };
     loadModels();
-  }, [])
+  }, []);
 
   useEffect(() => {
     const loadActiveModel = async () => {
       try {
         const model_id = useStore.getState().conversation?.model_id;
-        setSelectedModel(models.find((model) => model.id === model_id) ?? null);
+        const default_model_id = await getDefaultModel();
+        setSelectedModel(
+          (models.find((model) => model.id === model_id) ?? default_model_id)
+            ? (models.find((model) => model.id === default_model_id) ?? null)
+            : null,
+        );
       } catch (error) {
         console.error("Error fetching active model:", error);
       }
     };
     loadActiveModel();
-  }, [id])
-
+  }, [id]);
 
   const sendMessage = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -85,16 +90,16 @@ export default function ChatInput({ id }: { id: string }) {
         <textarea
           ref={(el) => {
             if (el) {
-              el.style.height = 'auto';
-              el.style.height = el.scrollHeight + 'px';
+              el.style.height = "auto";
+              el.style.height = el.scrollHeight + "px";
             }
           }}
           className="resize-none w-full max-h-48 pr-12 bg-transparent outline-none transition-all duration-200 ease-in-out"
           placeholder="Type your message..."
           onChange={(e) => {
             setUserInput(e.target.value);
-            e.target.style.height = 'auto';
-            e.target.style.height = e.target.scrollHeight + 'px';
+            e.target.style.height = "auto";
+            e.target.style.height = e.target.scrollHeight + "px";
           }}
           value={userInput}
         />
@@ -109,24 +114,36 @@ export default function ChatInput({ id }: { id: string }) {
             <div>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button className="flex items-center justify-center h-8 px-3 rounded-full" variant="outline" >
+                  <Button
+                    className="flex items-center justify-center h-8 px-3 rounded-full"
+                    variant="outline"
+                  >
                     {selectedModel ? <>{selectedModel.name}</> : <>Set model</>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[200px] p-0">
-                  <ModelsList models={models} setSelectedModel={setSelectedModel} />
+                  <ModelsList
+                    models={models}
+                    setSelectedModel={setSelectedModel}
+                  />
                 </PopoverContent>
               </Popover>
             </div>
           ) : (
             <Drawer open={open} onOpenChange={setOpen}>
               <DrawerTrigger asChild>
-                <Button variant={"outline"} className="flex items-center justify-center h-8 px-3 rounded-full">
+                <Button
+                  variant={"outline"}
+                  className="flex items-center justify-center h-8 px-3 rounded-full"
+                >
                   {selectedModel ? <>{selectedModel.name}</> : <>+ Set model</>}
                 </Button>
               </DrawerTrigger>
               <DrawerContent className="w-[200px] p-0">
-                <ModelsList models={models} setSelectedModel={setSelectedModel} />
+                <ModelsList
+                  models={models}
+                  setSelectedModel={setSelectedModel}
+                />
               </DrawerContent>
             </Drawer>
           )}
@@ -146,43 +163,115 @@ export default function ChatInput({ id }: { id: string }) {
       >
         <Send size={styles.iconSize} className="flex-shrink-0" />
       </Button>
-    </form >
+    </form>
   );
 }
 
+function ModelsList({
+  models,
+  setSelectedModel,
+}: {
+  models: Model[];
+  setSelectedModel: (model: Model) => void;
+}) {
+  const openRouterModels = models.filter(
+    (model) => model.provider === "OpenRouter",
+  );
+  const geminiModels = models.filter((model) => model.provider === "Gemini");
+  const [searchValue, setSearchValue] = useState(""); // Add this line
+  const [defaultModel, setDefaultModel] = useState<string | undefined>(
+    undefined,
+  );
 
-function ModelsList({ models, setSelectedModel }: { models: Model[], setSelectedModel: (model: Model) => void }) {
-  const openRouterModels = models.filter(model => model.provider === 'OpenRouter');
-  const geminiModels = models.filter(model => model.provider === 'Gemini');
+  useEffect(() => {
+    const loadDefaultModel = async () => {
+      setDefaultModel(await getDefaultModel());
+    };
+
+    loadDefaultModel();
+  }, []);
+
+  const handleSaveDefaultModel = async (modelId: string) => {
+    if (modelId === defaultModel) {
+      toast.error("That's already the default model");
+      return;
+    }
+    await saveDefaultModel(modelId);
+    setDefaultModel(modelId);
+  };
 
   return (
     <Command>
-      <CommandInput placeholder="Search model..." />
+      <CommandInput
+        placeholder="Search model..."
+        value={searchValue}
+        onValueChange={setSearchValue}
+      />
       <CommandList>
         <CommandEmpty>No model found.</CommandEmpty>
         {openRouterModels.length > 0 && (
           <CommandGroup heading="OpenRouter Models">
             {openRouterModels.map((model) => (
-              <CommandItem key={model.id} onSelect={() => {
-                setSelectedModel(model);
-              }}>
-                {model.name}
-              </CommandItem>
+              <div className="flex flex-row items-center w-full">
+                <CommandItem
+                  key={model.id}
+                  onSelect={() => {
+                    setSelectedModel(model);
+                  }}
+                  className="w-full"
+                >
+                  {model.name}
+                </CommandItem>
+                {searchValue === "" && (
+                  <CommandShortcut>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="p-0 z-50"
+                      onClick={() => saveDefaultModel(model.id)}
+                    >
+                      <Star />
+                    </Button>
+                  </CommandShortcut>
+                )}
+              </div>
             ))}
           </CommandGroup>
         )}
         {geminiModels.length > 0 && (
           <CommandGroup heading="Gemini Models">
             {geminiModels.map((model) => (
-              <CommandItem key={model.id} onSelect={() => {
-                setSelectedModel(model);
-              }}>
-                {model.name}
-              </CommandItem>
+              <div className="flex flex-row items-center w-full">
+                <CommandItem
+                  key={model.id}
+                  onSelect={() => {
+                    setSelectedModel(model);
+                  }}
+                  className="w-full"
+                >
+                  {model.name}
+                </CommandItem>
+                {searchValue === "" && (
+                  <CommandShortcut>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="p-0 z-50"
+                      onClick={() => handleSaveDefaultModel(model.id)}
+                    >
+                      {model.id === defaultModel ? (
+                        <Star className="text-yellow-300" />
+                      ) : (
+                        <Star />
+                      )}
+                    </Button>
+                  </CommandShortcut>
+                )}
+              </div>
             ))}
           </CommandGroup>
         )}
       </CommandList>
     </Command>
-  )
+  );
 }
