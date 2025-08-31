@@ -120,7 +120,7 @@ export default function ChatMessages() {
               ) : isGenerating && index === lastMessageIndex ? (
                 <StreamingTypeText
                   text={message.content}
-                  typingSpeed={10}
+                  typingSpeed={2}
                   showCursor={true}
                   isComplete={!loading}
                   className="prose prose-invert max-w-none"

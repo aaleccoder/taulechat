@@ -42,30 +42,25 @@ export default function ChatInput({ id }: { id: string }) {
     const loadModels = async () => {
       try {
         const fetchedModels = await getModelsFromStore();
-        console.log(fetchedModels);
+        const default_model_id = await getDefaultModel();
+        const model_id = useStore.getState().conversation?.model_id;
         setModels(fetchedModels);
+        if (default_model_id && !model_id) {
+          setSelectedModel(
+            fetchedModels.find((model) => model.id === default_model_id) ||
+              null,
+          );
+          return;
+        }
+        console.log("here");
+        setSelectedModel(
+          fetchedModels.find((model) => model.id === model_id) || null,
+        );
       } catch (error) {
         console.error("Error fetching models:", error);
       }
     };
     loadModels();
-  }, []);
-
-  useEffect(() => {
-    const loadActiveModel = async () => {
-      try {
-        const model_id = useStore.getState().conversation?.model_id;
-        const default_model_id = await getDefaultModel();
-        setSelectedModel(
-          (models.find((model) => model.id === model_id) ?? default_model_id)
-            ? (models.find((model) => model.id === default_model_id) ?? null)
-            : null,
-        );
-      } catch (error) {
-        console.error("Error fetching active model:", error);
-      }
-    };
-    loadActiveModel();
   }, [id]);
 
   const sendMessage = async (e: React.MouseEvent<HTMLButtonElement>) => {
