@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { getConversation as dbGetConversation, getMessagesForConversation, createConversation as dbCreateConversation, deleteConversation } from "@/lib/database/methods";
-import { useState } from "react";
 
 export type ConversationState = {
     id: string;

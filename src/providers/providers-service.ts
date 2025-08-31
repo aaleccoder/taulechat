@@ -1,10 +1,9 @@
 import { ProviderName } from "@/components/Settings";
-import { createConversation, createMessage } from "@/lib/database/methods";
+import { createMessage } from "@/lib/database/methods";
 import { ChatMessage, useLoading, useSidebarConversation, useStore } from "@/utils/state";
 import { getAPIKeyFromStore, getModelById } from "@/utils/store";
-import OpenAI from "openai";
+import { fetch } from "@tauri-apps/plugin-http";
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router";
 import { toast } from "sonner";
 
 function createTitleFromPrompt(prompt: string) {
@@ -16,16 +15,23 @@ function createTitleFromPrompt(prompt: string) {
 }
 
 
+class HttpError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
 export function useOpenRouter() {
   const [text, setText] = useState("");
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  const [loading] = useState(false);
 
   useEffect(() => {
     const loadKeys = async () => {
       const openRouterKey = await getAPIKeyFromStore(ProviderName.OpenRouter);
       const geminiKey = await getAPIKeyFromStore(ProviderName.Gemini);
-      // Store keys in state or use as needed
       setText(openRouterKey || geminiKey || "");
     };
     loadKeys();
@@ -34,12 +40,6 @@ export function useOpenRouter() {
   const sendPrompt = useCallback(async (id: string, prompt: string, model_id: string) => {
     const model = await getModelById(model_id);
     const isGemini = model?.provider === 'Gemini';
-
-    const openai = new OpenAI({
-      baseURL: isGemini ? "https://generativelanguage.googleapis.com/v1beta/openai/" : "https://openrouter.ai/api/v1",
-      dangerouslyAllowBrowser: true,
-      apiKey: await getAPIKeyFromStore(isGemini ? ProviderName.Gemini : ProviderName.OpenRouter),
-    });
 
     let isNewConversation = false;
     try {
@@ -81,17 +81,54 @@ export function useOpenRouter() {
         content: m.content,
       })) || [];
 
-      const stream = await openai.chat.completions.create({
-        model: model_id,
-        messages: storeMessages,
-        stream: true,
-      });
+      const apiKey = await getAPIKeyFromStore(isGemini ? ProviderName.Gemini : ProviderName.OpenRouter)
+      const response = await fetch(isGemini ? "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions" : "https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: model_id,
+          messages: storeMessages,
+          stream: true,
+        }),
+      })
 
-      for await (const chunk of stream) {
-        const token = chunk.choices[0]?.delta?.content || "";
-        accumulated += token;
-        setText(accumulated);
-        useStore.getState().updateMessage(assistantID, accumulated);
+      if (!response.ok) {
+        throw new HttpError(`HTTP error! status: ${response.status}`, response.status);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error("Failed to get response reader");
+      }
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          break;
+        }
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split("\n").filter(line => line.startsWith("data: "));
+
+        for (const line of lines) {
+          const jsonStr = line.replace("data: ", "");
+          if (jsonStr === "[DONE]") {
+            break;
+          }
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const token = parsed.choices[0]?.delta?.content || "";
+            accumulated += token;
+            setText(accumulated);
+            useStore.getState().updateMessage(assistantID, accumulated);
+          } catch (error) {
+            console.error("Failed to parse stream chunk:", error);
+          }
+        }
       }
 
       createMessage(assistantID, id, "assistant", accumulated)
@@ -99,15 +136,19 @@ export function useOpenRouter() {
 
     } catch (error) {
       console.error("Error sending prompt:", error);
-      const apiError = error as any;
-      if (apiError.status === 401) {
-        toast.error(`Please provide a valid ${isGemini ? 'Gemini' : 'OpenRouter'} API key`);
-      } else if (apiError.status === 429) {
-        toast.error("You have hit the rate limit. Please try again later.");
-      }
-      if (isNewConversation && (apiError.status === 401 || apiError.status === 429)) {
-        useSidebarConversation.getState().removeConversation(id);
-        useStore.getState().removeConversation();
+      if (error instanceof HttpError) {
+        if (error.status === 401) {
+          toast.error(`Please provide a valid ${isGemini ? 'Gemini' : 'OpenRouter'} API key`);
+        } else if (error.status === 429) {
+          toast.error("You have hit the rate limit. Please try again later.");
+        }
+
+        if (isNewConversation && (error.status === 401 || error.status === 429)) {
+          useSidebarConversation.getState().removeConversation(id);
+          useStore.getState().removeConversation();
+        }
+      } else {
+        toast.error("An unexpected error occurred. Please try again.");
       }
     } finally {
       useLoading.getState().setLoading(false);

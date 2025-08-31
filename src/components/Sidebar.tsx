@@ -13,13 +13,13 @@ import {
 } from "@/components/ui/sidebar";
 import { styles } from "@/constants/style";
 import { getAllConversations } from "@/lib/database/methods";
-import { ChatMessage, ConversationState, useSidebarConversation, useStore } from "@/utils/state";
-import { MessageCircle, MoreHorizontal, Settings, TestTube, Trash, User } from "lucide-react";
+import { useSidebarConversation, useStore } from "@/utils/state";
+import { MessageCircle, MoreHorizontal, Settings, Trash, } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Button } from "./ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
 import { DialogClose } from "@radix-ui/react-dialog";
 import { toast } from "sonner";
 

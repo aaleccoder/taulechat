@@ -1,8 +1,7 @@
 import ChatInput from "./ChatInput";
 import ChatMessages from "./ChatMessages";
 import { useParams } from "react-router";
-import { useEffect, useState } from "react";
-import { getConversation, getMessagesForConversation } from "@/lib/database/methods";
+import { useEffect } from "react";
 import { useStore } from "@/utils/state";
 
 export default function ChatScreen() {
@@ -40,7 +39,7 @@ export default function ChatScreen() {
   return (
     <div className="flex flex-col h-[90vh] overflow-y-auto bg-background">
       <div className="flex-1 overflow-y-auto">
-        <ChatMessages chatid={id ? id : ""} />
+        <ChatMessages />
       </div>
       <ChatInput id={id ? id : ""} />
     </div>

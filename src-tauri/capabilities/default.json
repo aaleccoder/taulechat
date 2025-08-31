@@ -16,7 +16,10 @@
           "url": "https://*.tauri.app"
         },
         {
-          "url": "https://openrouter.ai/api/v1/chat/completions"
+          "url": "https://openrouter.ai/api/v1/*"
+        },
+        {
+          "url": "https://generativelanguage.googleapis.com/v1beta/openai/*"
         }
       ],
       "deny": [

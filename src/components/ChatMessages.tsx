@@ -1,8 +1,8 @@
-import { ChatMessage, useLoading, useStore } from "@/utils/state";
+import { useLoading, useStore } from "@/utils/state";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-export default function ChatMessages({ chatid }: { chatid: string }) {
+export default function ChatMessages() {
   const messages = useStore((state) => state.conversation?.messages);
   const loading = useLoading((state) => state.loading);
 
