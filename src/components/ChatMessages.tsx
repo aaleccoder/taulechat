@@ -40,6 +40,32 @@ export default function ChatMessages() {
               key={message.id || `user-${index}`}
               className="flex justify-end items-end flex-col space-y-2"
             >
+              {message.files && message.files.length > 0 && (
+                <div className="flex flex-row gap-2 flex-wrap ml-auto">
+                  {message.files.slice(0, 2).map((f) => {
+                    const isImage = f.mime_type.startsWith("image/");
+                    let preview: string | undefined;
+                    if (isImage) {
+                      try {
+                        const blob = new Blob([f.data], { type: f.mime_type });
+                        preview = URL.createObjectURL(blob);
+                      } catch {}
+                    }
+                    return (
+                      <div key={f.id} className="border rounded-lg p-2 bg-card w-fit max-w-[50%]">
+                        {isImage && preview ? (
+                          <img src={preview} className="max-w-[200px] max-h-[200px] object-cover rounded" />
+                        ) : (
+                          <div className="text-xs flex items-center gap-2">
+                            <span className="px-2 py-1 bg-muted rounded">{f.file_name}</span>
+                            <span className="opacity-60">{Math.round(f.size/1024)} KB</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
               <div
                 className={`message ${message.role} ml-auto px-4 py-2 bg-card w-fit max-w-[50%] rounded-2xl`}
               >
@@ -102,6 +128,32 @@ export default function ChatMessages() {
               key={message.id || `ai-${index}`}
               className={`message ${message.role} w-full`}
             >
+              {message.files && message.files.length > 0 && (
+                <div className="flex flex-row gap-2 flex-wrap">
+                  {message.files.slice(0, 2).map((f) => {
+                    const isImage = f.mime_type.startsWith("image/");
+                    let preview: string | undefined;
+                    if (isImage) {
+                      try {
+                        const blob = new Blob([f.data], { type: f.mime_type });
+                        preview = URL.createObjectURL(blob);
+                      } catch {}
+                    }
+                    return (
+                      <div key={f.id} className="border rounded-lg p-2 bg-card w-fit max-w-[50%]">
+                        {isImage && preview ? (
+                          <img src={preview} className="max-w-[200px] max-h-[200px] object-cover rounded" />
+                        ) : (
+                          <div className="text-xs flex items-center gap-2">
+                            <span className="px-2 py-1 bg-muted rounded">{f.file_name}</span>
+                            <span className="opacity-60">{Math.round(f.size/1024)} KB</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
               {loading && index === messages.length - 1 && !message.content ? (
                 <div className="flex items-center space-x-1 py-2">
                   <span

@@ -1,7 +1,5 @@
-
-
-use tauri_plugin_sql::{Migration, MigrationKind};
 use std::fs;
+use tauri_plugin_sql::{Migration, MigrationKind};
 
 #[tauri::command]
 fn read_and_encode_file(file_path: String) -> Result<String, String> {
@@ -42,11 +40,33 @@ pub fn run() {
         );
         ",
         kind: MigrationKind::Up,
-    }];
+    },
+    Migration{
+        version: 2,
+        description: "create message_files table",
+        sql: "
+        -- Files (attachments) associated with messages. Limit enforced in app layer.
+        CREATE TABLE IF NOT EXISTS message_files (
+            id          TEXT PRIMARY KEY,
+            message_id  TEXT NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+            file_name   TEXT NOT NULL,
+            mime_type   TEXT NOT NULL,
+            data        BLOB NOT NULL,
+            size        INTEGER NOT NULL,
+            created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        ",
+        kind: MigrationKind::Up,
+    }
+    ];
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_store::Builder::new().build())
-        .plugin(tauri_plugin_sql::Builder::default().add_migrations("sqlite:database.db", migration).build())
+        .plugin(
+            tauri_plugin_sql::Builder::default()
+                .add_migrations("sqlite:database.db", migration)
+                .build(),
+        )
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![read_and_encode_file])

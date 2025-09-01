@@ -1,4 +1,4 @@
-import { ChatMessage, ConversationState } from "@/utils/state";
+import { ChatMessage, ConversationState, MessageFile } from "@/utils/state";
 import { db } from "./connection";
 
 // ------------------------- Conversations CRUD -------------------------
@@ -53,4 +53,32 @@ export function updateMessage(id: string, values: Partial<Omit<ChatMessage, 'id'
 
 export function deleteMessage(id: string) {
     return db.execute("DELETE FROM messages WHERE id = $1", [id]);
+}
+
+// ------------------------- Message Files CRUD -------------------------
+
+export function createMessageFile(
+    id: string,
+    message_id: string,
+    file_name: string,
+    mime_type: string,
+    data: Uint8Array,
+    size: number
+) {
+    // plugin-sql accepts Uint8Array for BLOB
+    return db.execute(
+        "INSERT INTO message_files (id, message_id, file_name, mime_type, data, size) VALUES ($1, $2, $3, $4, $5, $6)",
+        [id, message_id, file_name, mime_type, data, size]
+    );
+}
+
+export function getFilesForMessage(message_id: string) {
+    return db.select<MessageFile[]>(
+        "SELECT id, message_id, file_name, mime_type, data, size, created_at FROM message_files WHERE message_id = $1 ORDER BY created_at ASC",
+        [message_id]
+    );
+}
+
+export function deleteFilesForMessage(message_id: string) {
+    return db.execute("DELETE FROM message_files WHERE message_id = $1", [message_id]);
 }

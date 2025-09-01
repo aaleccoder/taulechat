@@ -30,6 +30,7 @@ import { Drawer, DrawerContent, DrawerTrigger } from "./ui/drawer";
 import React from "react";
 import { toast } from "sonner";
 import { open as openFile } from "@tauri-apps/plugin-dialog";
+import { invoke } from "@tauri-apps/api/core";
 
 export default function ChatInput({ id }: { id: string }) {
   const [userInput, setUserInput] = useState("");
@@ -38,6 +39,15 @@ export default function ChatInput({ id }: { id: string }) {
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const { sendPrompt } = useOpenRouter();
   const navigate = useNavigate();
+  const [attachments, setAttachments] = useState<{
+    id: string;
+    fileName: string;
+    mimeType: string;
+    base64: string;
+    bytes: Uint8Array;
+    size: number;
+    url?: string; // preview object URL for images
+  }[]>([]);
 
   useEffect(() => {
     const loadModels = async () => {
@@ -71,29 +81,114 @@ export default function ChatInput({ id }: { id: string }) {
     let chatId = id;
     if (!chatId) {
       const newId = crypto.randomUUID();
-      sendPrompt(newId, userInput.trim(), selectedModel?.id ?? "");
+      sendPrompt(newId, userInput.trim(), selectedModel?.id ?? "", attachments);
       navigate(`/chat/${newId}`);
     } else {
-      sendPrompt(chatId, userInput.trim(), selectedModel?.id ?? "");
+      sendPrompt(chatId, userInput.trim(), selectedModel?.id ?? "", attachments);
     }
 
     setUserInput("");
+    setAttachments([]);
   };
 
   async function handleFileUpload(e: React.MouseEvent<HTMLButtonElement>) {
     e.preventDefault();
+    if (!selectedModel) {
+      toast.error("Select a model first");
+      return;
+    }
+    if (selectedModel.provider !== "OpenRouter") {
+      toast.error("Attachments are supported only for OpenRouter models");
+      return;
+    }
 
-    const file = await openFile({
-      mutiple: false,
+    const files = await openFile({
+      multiple: true,
       directory: false,
     });
 
-    console.log(file);
+    const paths = Array.isArray(files) ? files : files ? [files] : [];
+    if (paths.length === 0) return;
+
+    const extToMime = (name: string) => {
+      const lower = name.toLowerCase();
+      if (/(\.png|\.apng)$/.test(lower)) return "image/png";
+      if (/\.jpe?g$/.test(lower)) return "image/jpeg";
+      if (/\.gif$/.test(lower)) return "image/gif";
+      if (/\.webp$/.test(lower)) return "image/webp";
+      if (/\.svg$/.test(lower)) return "image/svg+xml";
+      if (/\.pdf$/.test(lower)) return "application/pdf";
+      if (/\.txt$/.test(lower)) return "text/plain";
+      if (/\.md$/.test(lower)) return "text/markdown";
+      if (/\.json$/.test(lower)) return "application/json";
+      return "application/octet-stream";
+    };
+
+    const supportsImages = !!selectedModel.architecture?.input_modalities?.includes("image");
+
+    const newly: typeof attachments = [];
+    for (const p of paths) {
+      try {
+        const base64 = await invoke<string>("read_and_encode_file", { filePath: p });
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        const fileName = (p as string).split(/[/\\]/).pop() || "file";
+        const mimeType = extToMime(fileName);
+        const isImage = mimeType.startsWith("image/");
+
+        if (isImage && !supportsImages) {
+          toast.error("This model doesn't support image input");
+          continue;
+        }
+
+        newly.push({
+          id: crypto.randomUUID(),
+          fileName,
+          mimeType,
+          base64,
+          bytes,
+          size: bytes.byteLength,
+          url: isImage ? URL.createObjectURL(new Blob([bytes], { type: mimeType })) : undefined,
+        });
+      } catch (err) {
+        console.error("Failed reading file:", err);
+        toast.error("Failed to load file");
+      }
+      if (attachments.length + newly.length >= 2) break; // limit to 2
+    }
+
+    const next = [...attachments, ...newly].slice(0, 2);
+    setAttachments(next);
   }
 
   return (
     <form className="flex flex-row justify-center items-center space-x-4 rounded-2xl shadow-2xl w-full z-50 p-2 relative bg-card mb-4">
       <div className="bg-background flex-1 px-4 py-2 rounded-xl flex-col items-center space-y-4 w-full">
+        {attachments.length > 0 && (
+          <div className="flex flex-row gap-2 flex-wrap mb-2">
+            {attachments.map((att) => (
+              <div key={att.id} className="border rounded-lg p-2 flex items-center gap-2 bg-card/60">
+                {att.url && att.mimeType.startsWith("image/") ? (
+                  <img src={att.url} alt={att.fileName} className="w-12 h-12 object-cover rounded" />
+                ) : (
+                  <div className="w-12 h-12 flex items-center justify-center bg-muted rounded text-xs">
+                    {att.fileName.split(".").pop()?.toUpperCase()}
+                  </div>
+                )}
+                <div className="text-xs max-w-40 truncate">{att.fileName}</div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setAttachments((prev) => prev.filter((a) => a.id !== att.id))}
+                >
+                  ✕
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
         <textarea
           ref={(el) => {
             if (el) {

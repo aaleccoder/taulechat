@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { getConversation as dbGetConversation, getMessagesForConversation, createConversation as dbCreateConversation, deleteConversation } from "@/lib/database/methods";
+import { getConversation as dbGetConversation, getMessagesForConversation, createConversation as dbCreateConversation, deleteConversation, getFilesForMessage } from "@/lib/database/methods";
 
 export type ConversationState = {
     id: string;
@@ -14,6 +14,17 @@ export type ChatMessage = {
     role: 'user' | 'assistant' | 'system';
     content: string;
     tokens_used?: number;
+    created_at: string;
+    files?: MessageFile[]; // optional attachments associated to this message
+};
+
+export type MessageFile = {
+    id: string;
+    message_id: string;
+    file_name: string;
+    mime_type: string;
+    data: Uint8Array; // stored as BLOB in DB
+    size: number;
     created_at: string;
 };
 
@@ -111,13 +122,24 @@ export const useStore = create<ChatConversationsState>((set, get) => ({
                 return;
             }
 
-            const messages = await getMessagesForConversation(conversationId as string);
+            const rawMessages = await getMessagesForConversation(conversationId as string);
+            // Load attachments for each message
+            const messages = await Promise.all(
+                (Array.isArray(rawMessages) ? rawMessages : []).map(async (m) => {
+                    try {
+                        const files = await getFilesForMessage(m.id);
+                        return { ...m, files: Array.isArray(files) ? files : [] } as ChatMessage;
+                    } catch {
+                        return { ...m, files: [] } as ChatMessage;
+                    }
+                })
+            );
 
             const conversationState: ConversationState = {
                 id: convoRow.id,
                 model_id: convoRow.model_id ?? "",
                 title: convoRow.title ?? "",
-                messages: Array.isArray(messages) ? messages : [],
+                messages,
             };
 
             set(() => ({ conversation: conversationState }));

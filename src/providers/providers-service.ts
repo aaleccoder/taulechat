@@ -1,11 +1,6 @@
 import { ProviderName } from "@/components/Settings";
-import { createMessage } from "@/lib/database/methods";
-import {
-  ChatMessage,
-  useLoading,
-  useSidebarConversation,
-  useStore,
-} from "@/utils/state";
+import { createMessage, createMessageFile } from "@/lib/database/methods";
+import { ChatMessage, MessageFile, useLoading, useSidebarConversation, useStore } from "@/utils/state";
 import { getAPIKeyFromStore, getModelById } from "@/utils/store";
 import { fetch } from "@tauri-apps/plugin-http";
 import { useCallback, useEffect, useState } from "react";
@@ -41,10 +36,30 @@ export function useOpenRouter() {
     loadKeys();
   }, []);
 
+  type SelectedAttachment = {
+    id: string;
+    fileName: string;
+    mimeType: string;
+    base64: string;
+    bytes: Uint8Array;
+    size: number;
+  };
+
+  function uint8ToBase64(u8: Uint8Array) {
+    let binary = "";
+    const chunk = 0x8000;
+    for (let i = 0; i < u8.length; i += chunk) {
+      binary += String.fromCharCode.apply(null, Array.from(u8.subarray(i, i + chunk)) as any);
+    }
+    return btoa(binary);
+  }
+
   const sendPrompt = useCallback(
-    async (id: string, prompt: string, model_id: string) => {
+    async (id: string, prompt: string, model_id: string, attachments: SelectedAttachment[] = []) => {
       const model = await getModelById(model_id);
       const isGemini = model?.provider === "Gemini";
+      const isOpenRouter = model?.provider === "OpenRouter";
+      const supportsImages = !!model?.architecture?.input_modalities?.includes("image");
 
       let isNewConversation = false;
       try {
@@ -75,9 +90,32 @@ export function useOpenRouter() {
           role: "user",
           conversation_id: id,
           created_at: new Date().toISOString(),
+          files: attachments.slice(0, 2).map((a) => ({
+            id: a.id,
+            message_id: "", // will be set when loaded from DB
+            file_name: a.fileName,
+            mime_type: a.mimeType,
+            data: a.bytes,
+            size: a.size,
+            created_at: new Date().toISOString(),
+          })) as MessageFile[],
         };
         useStore.getState().addMessage(userMessage);
-        createMessage(userMessage.id, id, "user", userMessage.content);
+        await createMessage(userMessage.id, id, "user", userMessage.content);
+
+        if (attachments.length > 0) {
+          if (!isOpenRouter) {
+            toast.error("Attachments are only supported for OpenRouter models.");
+          } else {
+            for (const a of attachments.slice(0, 2)) {
+              try {
+                await createMessageFile(a.id, userMessage.id, a.fileName, a.mimeType, a.bytes, a.size);
+              } catch (e) {
+                console.error("Failed to save attachment:", e);
+              }
+            }
+          }
+        }
 
         const assistantID = crypto.randomUUID();
         const assistantMessage: ChatMessage = {
@@ -89,19 +127,29 @@ export function useOpenRouter() {
         };
         useStore.getState().addMessage(assistantMessage);
 
-        const storeMessages =
-          useStore
-            .getState()
-            .getConversation()
-            ?.messages.map((m) => ({
-              role: m.role,
-              content: m.content,
-            })) || [];
+        const storeConversation = useStore.getState().getConversation();
+        const storeMessages = storeConversation?.messages || [];
+        const formattedMessages = storeMessages.map((m) => {
+          if (isOpenRouter && m.role === "user" && (m.files?.length || 0) > 0) {
+            const parts: any[] = [];
+            if (m.content?.trim()) parts.push({ type: "text", text: m.content });
+            if (supportsImages) {
+              for (const f of m.files!.slice(0, 2)) {
+                if (f.mime_type.startsWith("image/")) {
+                  const b64 = uint8ToBase64(f.data);
+                  parts.push({ type: "image_url", image_url: { url: `data:${f.mime_type};base64,${b64}` } });
+                }
+              }
+            }
+            return { role: m.role, content: parts.length > 0 ? parts : m.content };
+          }
+          return { role: m.role, content: m.content };
+        });
 
         const apiKey = await getAPIKeyFromStore(
           isGemini ? ProviderName.Gemini : ProviderName.OpenRouter,
         );
-        const response = await fetch(
+    const response = await fetch(
           isGemini
             ? "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
             : "https://openrouter.ai/api/v1/chat/completions",
@@ -113,7 +161,7 @@ export function useOpenRouter() {
             },
             body: JSON.stringify({
               model: model_id,
-              messages: storeMessages,
+              messages: formattedMessages,
               stream: true,
             }),
           },
@@ -161,7 +209,7 @@ export function useOpenRouter() {
         }
 
         useSidebarConversation.getState().setActiveChat(id);
-        createMessage(assistantID, id, "assistant", accumulated);
+  await createMessage(assistantID, id, "assistant", accumulated);
       } catch (error) {
         console.error("Error sending prompt:", error);
         if (error instanceof HttpError) {
