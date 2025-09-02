@@ -141,6 +141,7 @@ export function useOpenRouter() {
         const apiKey = await getAPIKeyFromStore(
           isGemini ? ProviderName.Gemini : ProviderName.OpenRouter,
         );
+        useSidebarConversation.getState().setActiveChat(id);
         const response = await fetch(
           isGemini
             ? "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
@@ -200,7 +201,6 @@ export function useOpenRouter() {
           }
         }
 
-        useSidebarConversation.getState().setActiveChat(id);
         await createMessage(assistantID, id, "assistant", accumulated);
       } catch (error) {
         console.error("Error sending prompt:", error);

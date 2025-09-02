@@ -70,6 +70,8 @@ export type ChatConversationsState = {
 };
 
 export type GeminiModel = {
+    // Some Gemini lists may not include id; we'll normalize to ensure id exists downstream
+    id?: string;
     name: string;
     version: string;
     displayName: string;
@@ -140,7 +142,6 @@ export const useStore = create<ChatConversationsState>((set, get) => ({
             }
 
             const rawMessages = await getMessagesForConversation(conversationId as string);
-            // Load attachments for each message
             const messages = await Promise.all(
                 (Array.isArray(rawMessages) ? rawMessages : []).map(async (m) => {
                     try {

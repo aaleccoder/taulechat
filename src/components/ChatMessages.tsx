@@ -9,14 +9,11 @@ import "katex/dist/katex.min.css";
 import { Button } from "./ui/button";
 import { Clipboard } from "lucide-react";
 import { toast } from "sonner";
-import StreamingTypeText from "./animations/StreamingTypeText";
 
 export default function ChatMessages() {
   const messages = useStore((state) => state.conversation?.messages);
   const loading = useLoading((state) => state.loading);
 
-  const isGenerating = loading && messages && messages.length > 0;
-  const lastMessageIndex = messages ? messages.length - 1 : -1;
 
   if (!messages || messages.length === 0) {
     return (
@@ -49,7 +46,7 @@ export default function ChatMessages() {
                       try {
                         const blob = new Blob([f.data], { type: f.mime_type });
                         preview = URL.createObjectURL(blob);
-                      } catch {}
+                      } catch { }
                     }
                     return (
                       <div key={f.id} className="border rounded-lg p-2 bg-card w-fit max-w-[50%]">
@@ -58,7 +55,7 @@ export default function ChatMessages() {
                         ) : (
                           <div className="text-xs flex items-center gap-2">
                             <span className="px-2 py-1 bg-muted rounded">{f.file_name}</span>
-                            <span className="opacity-60">{Math.round(f.size/1024)} KB</span>
+                            <span className="opacity-60">{Math.round(f.size / 1024)} KB</span>
                           </div>
                         )}
                       </div>
@@ -137,7 +134,7 @@ export default function ChatMessages() {
                       try {
                         const blob = new Blob([f.data], { type: f.mime_type });
                         preview = URL.createObjectURL(blob);
-                      } catch {}
+                      } catch { }
                     }
                     return (
                       <div key={f.id} className="border rounded-lg p-2 bg-card w-fit max-w-[50%]">
@@ -146,7 +143,7 @@ export default function ChatMessages() {
                         ) : (
                           <div className="text-xs flex items-center gap-2">
                             <span className="px-2 py-1 bg-muted rounded">{f.file_name}</span>
-                            <span className="opacity-60">{Math.round(f.size/1024)} KB</span>
+                            <span className="opacity-60">{Math.round(f.size / 1024)} KB</span>
                           </div>
                         )}
                       </div>
@@ -169,14 +166,6 @@ export default function ChatMessages() {
                     style={{ animationDelay: "300ms" }}
                   />
                 </div>
-              ) : isGenerating && index === lastMessageIndex ? (
-                <StreamingTypeText
-                  text={message.content}
-                  typingSpeed={2}
-                  showCursor={true}
-                  isComplete={!loading}
-                  className="prose prose-invert max-w-none"
-                />
               ) : (
                 <Markdown
                   children={message.content}

@@ -45,8 +45,29 @@ export async function saveGeminiModelsToStore(models: GeminiModel[]) {
 }
 
 export async function getModelsFromStore(): Promise<[OpenRouterModel[], GeminiModel[]]> {
-  const openRouterModels = (await getOpenRouterModelsFromStore()) || [];
-  const geminiModels = (await getGeminiModelsFromStore()) || [];
+  const openRouterRaw = (await getOpenRouterModelsFromStore()) || [];
+  const geminiRaw = (await getGeminiModelsFromStore()) || [];
+
+  // Ensure each model has a provider field and a stable id for UI filtering/selection
+  const openRouterModels = openRouterRaw.map((m) => {
+    // Prefer existing id; fall back to common fields if needed
+    const id = (m as any).id || (m as any).canonical_slug || (m as any).name;
+    return {
+      ...m,
+      id,
+      provider: "OpenRouter",
+    } as OpenRouterModel;
+  });
+
+  const geminiModels = geminiRaw.map((m) => {
+    // Gemini schema might not include an explicit id; normalize to name/displayName
+    const id = (m as any).id || (m as any).name || (m as any).displayName || (m as any).version || "";
+    return {
+      ...m,
+      id,
+      provider: "Gemini",
+    } as GeminiModel;
+  });
 
   return [openRouterModels, geminiModels];
 }
