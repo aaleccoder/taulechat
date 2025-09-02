@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { styles } from "@/constants/style";
-import { OpenRouterModel, useStore } from "@/utils/state";
+import { OpenRouterModel, GeminiModel, useStore } from "@/utils/state";
 import {
   getDefaultModel,
   getModelsFromStore,
@@ -34,9 +34,11 @@ import { invoke } from "@tauri-apps/api/core";
 
 export default function ChatInput({ id }: { id: string }) {
   const [userInput, setUserInput] = useState("");
-  const [models, setModels] = useState<OpenRouterModel[]>([]);
+  const [models, setModels] = useState<(OpenRouterModel | GeminiModel)[]>([]);
   const [open, setOpen] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<OpenRouterModel | null>(null);
+  const [selectedModel, setSelectedModel] = useState<
+    (OpenRouterModel | GeminiModel) | null
+  >(null);
   const { sendPrompt } = useOpenRouter();
   const navigate = useNavigate();
   const [attachments, setAttachments] = useState<{
@@ -52,7 +54,11 @@ export default function ChatInput({ id }: { id: string }) {
   useEffect(() => {
     const loadModels = async () => {
       try {
-        const fetchedModels = await getModelsFromStore();
+        const [openRouterModels, geminiModels] = await getModelsFromStore();
+        const fetchedModels = [
+          ...openRouterModels,
+          ...geminiModels,
+        ] as (OpenRouterModel | GeminiModel)[];
         const default_model_id = await getDefaultModel();
         const model_id = useStore.getState().conversation?.model_id;
         setModels(fetchedModels);
@@ -93,11 +99,12 @@ export default function ChatInput({ id }: { id: string }) {
 
   async function handleFileUpload(e: React.MouseEvent<HTMLButtonElement>) {
     e.preventDefault();
-    if (!selectedModel) {
+  if (!selectedModel) {
       toast.error("Select a model first");
       return;
     }
-    if (selectedModel.provider !== "OpenRouter") {
+  const isOpenRouter = (selectedModel as any)?.provider === "OpenRouter";
+  if (!isOpenRouter) {
       toast.error("Attachments are supported only for OpenRouter models");
       return;
     }
@@ -124,7 +131,9 @@ export default function ChatInput({ id }: { id: string }) {
       return "application/octet-stream";
     };
 
-    const supportsImages = !!selectedModel.architecture?.input_modalities?.includes("image");
+    const supportsImages = !!(selectedModel as any)?.architecture?.input_modalities?.includes(
+      "image",
+    );
 
     const newly: typeof attachments = [];
     for (const p of paths) {
@@ -177,7 +186,7 @@ export default function ChatInput({ id }: { id: string }) {
                   </div>
                 )}
                 <div className="text-xs max-w-40 truncate">{att.fileName}</div>
-                <Button
+                  <Button
                   type="button"
                   variant="ghost"
                   size="icon"
@@ -221,7 +230,7 @@ export default function ChatInput({ id }: { id: string }) {
                     className="flex items-center justify-center h-8 px-3 rounded-full"
                     variant="outline"
                   >
-                    {selectedModel ? <>{selectedModel.name}</> : <>Set model</>}
+                    {selectedModel ? <>{(selectedModel as any).name || (selectedModel as any).displayName || (selectedModel as any).id}</> : <>Set model</>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[200px] p-0">
@@ -239,7 +248,7 @@ export default function ChatInput({ id }: { id: string }) {
                   variant={"outline"}
                   className="flex items-center justify-center h-8 px-3 rounded-full"
                 >
-                  {selectedModel ? <>{selectedModel.name}</> : <>+ Set model</>}
+                  {selectedModel ? <>{(selectedModel as any).name || (selectedModel as any).displayName || (selectedModel as any).id}</> : <>+ Set model</>}
                 </Button>
               </DrawerTrigger>
               <DrawerContent className="w-full">
@@ -274,13 +283,15 @@ function ModelsList({
   models,
   setSelectedModel,
 }: {
-  models: OpenRouterModel[];
-  setSelectedModel: (model: OpenRouterModel) => void;
+  models: (OpenRouterModel | GeminiModel)[];
+  setSelectedModel: (model: OpenRouterModel | GeminiModel) => void;
 }) {
   const openRouterModels = models.filter(
-    (model) => model.provider === "OpenRouter",
-  );
-  const geminiModels = models.filter((model) => model.provider === "Gemini");
+    (model) => (model as any)?.provider === "OpenRouter",
+  ) as OpenRouterModel[];
+  const geminiModels = models.filter(
+    (model) => (model as any)?.provider === "Gemini",
+  ) as (OpenRouterModel | GeminiModel)[];
   const [searchValue, setSearchValue] = useState(""); // Add this line
   const [defaultModel, setDefaultModel] = useState<string | undefined>(
     undefined,
@@ -312,12 +323,12 @@ function ModelsList({
       />
       <CommandList>
         <CommandEmpty>No model found.</CommandEmpty>
-        {openRouterModels.length > 0 && (
+    {openRouterModels.length > 0 && (
           <CommandGroup heading="OpenRouter Models">
-            {openRouterModels.map((model) => (
-              <div className="flex flex-row items-center w-full">
+      {openRouterModels.map((model) => (
+        <div key={model.id} className="flex flex-row items-center w-full">
                 <CommandItem
-                  key={model.id}
+          key={model.id}
                   onSelect={() => {
                     setSelectedModel(model);
                   }}
@@ -341,18 +352,21 @@ function ModelsList({
             ))}
           </CommandGroup>
         )}
-        {geminiModels.length > 0 && (
+    {geminiModels.length > 0 && (
           <CommandGroup heading="Gemini Models">
-            {geminiModels.map((model) => (
-              <div className="flex flex-row items-center w-full">
+      {geminiModels.map((model) => {
+        const id = (model as any).id as string;
+        const label = (model as any).name || (model as any).displayName || id;
+        return (
+        <div key={id} className="flex flex-row items-center w-full">
                 <CommandItem
-                  key={model.id}
+          key={id}
                   onSelect={() => {
                     setSelectedModel(model);
                   }}
                   className="w-full"
                 >
-                  {model.name}
+          {label}
                 </CommandItem>
                 {searchValue === "" && (
                   <CommandShortcut>
@@ -360,9 +374,9 @@ function ModelsList({
                       variant="ghost"
                       size="icon"
                       className="p-0 z-50"
-                      onClick={() => handleSaveDefaultModel(model.id)}
+            onClick={() => handleSaveDefaultModel(id)}
                     >
-                      {model.id === defaultModel ? (
+            {id === defaultModel ? (
                         <Star className="text-yellow-300" />
                       ) : (
                         <Star />
@@ -371,7 +385,7 @@ function ModelsList({
                   </CommandShortcut>
                 )}
               </div>
-            ))}
+      );})}
           </CommandGroup>
         )}
       </CommandList>
