@@ -44,6 +44,7 @@ export default function ChatMessages() {
                     let preview: string | undefined;
                     if (isImage) {
                       try {
+                        // @ts-ignore
                         const blob = new Blob([f.data], { type: f.mime_type });
                         preview = URL.createObjectURL(blob);
                       } catch { }
@@ -132,6 +133,7 @@ export default function ChatMessages() {
                     let preview: string | undefined;
                     if (isImage) {
                       try {
+                        // @ts-ignore
                         const blob = new Blob([f.data], { type: f.mime_type });
                         preview = URL.createObjectURL(blob);
                       } catch { }
