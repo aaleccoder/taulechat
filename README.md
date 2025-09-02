@@ -1,6 +1,7 @@
 # Taulechat.
 
 ### A lightweight chat and LLM interface for AI providers (currently OpenRouter and Gemini).
+[![publish](https://github.com/aaleccoder/taulechat/actions/workflows/publish.yml/badge.svg)](https://github.com/aaleccoder/taulechat/actions/workflows/publish.yml)
 
 ![Taulechat Banner](src-tauri/icons/icon.png)
 
