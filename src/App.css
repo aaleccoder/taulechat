@@ -7,6 +7,8 @@
 
 body {
   overflow: hidden;
+  padding: 0;
+  margin: 0;
 }
 
 :root {
@@ -77,13 +79,13 @@ body {
   --popover: #45475a;
   --popover-foreground: #cdd6f4;
   --primary: #cba6f7;
-  --primary-foreground: #1e1e2e;
+  --primary-foreground: rgb(88, 88, 88);
   --secondary: #585b70;
   --secondary-foreground: #cdd6f4;
   --muted: #292c3c;
   --muted-foreground: #a6adc8;
   --accent: #b4a1fa;
-  --accent-foreground: #000000;
+  --accent-foreground: #cdd6f4;
   --destructive: #f38ba8;
   --destructive-foreground: #1e1e2e;
   --border: #313244;
@@ -246,7 +248,7 @@ body {
 }
 
 .input-container {
-  @apply flex min-h-12 flex-1 items-end gap-2 rounded-full border bg-card px-2 py-2 shadow-md transition-shadow focus-within:shadow-lg focus-within:ring-2 focus-within:ring-ring/50;
+  @apply flex min-h-12 flex-1 items-end gap-2 rounded-full border bg-card px-2 py-2 shadow-md transition-all duration-150 focus-within:shadow-lg focus-within:ring-2 focus-within:ring-ring/50 focus-within:rounded-none;
 }
 
 .attach-btn {
@@ -326,7 +328,7 @@ body {
 }
 
 .sidebar-root {
-  @apply bg-background border-r shadow-md min-w-[260px] transition-shadow;
+  @apply bg-background shadow-md min-w-[260px] transition-shadow;
 }
 
 .sidebar-header {
@@ -401,6 +403,10 @@ body {
   @apply rounded-full px-4 py-2 transition-all;
 }
 
+.search-chat-input {
+  @apply h-12 focus:rounded-none w-full rounded-full border bg-card pl-10 pr-10 py-2 text-sm shadow-sm focus:ring-2 focus:ring-ring/50 transition-all duration-150 placeholder:text-muted-foreground/70;
+}
+
 /* Reusable Tailwind classes for Home component */
 
 .home-container {
@@ -422,4 +428,35 @@ body {
 
 .home-button {
   @apply h-12 px-6 rounded-full shadow-lg transition-all duration-150 active:scale-95;
+}
+
+/* Reusable Tailwind classes for App Header */
+
+.app-header {
+  @apply flex items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 py-3;
+}
+
+.app-logo {
+  @apply flex items-center gap-2 rounded-full transition-all duration-150 hover:bg-accent/10 px-2 py-1 focus-visible:ring-2 focus-visible:ring-ring/50;
+}
+
+.app-logo-icon {
+  @apply h-8 w-8 rounded-full bg-gradient-to-r from-primary to-accent flex items-center justify-center;
+}
+
+.app-logo-text {
+  @apply font-semibold text-lg hidden sm:block;
+}
+
+.new-chat-btn {
+  @apply h-10 w-10 rounded-full motion-safe:transition-all motion-safe:duration-150 hover:bg-accent/10 active:scale-95;
+}
+
+/* Animation classes for hiding/showing UI elements */
+.ui-element-hidden {
+  @apply transition-all duration-300 -translate-y-full opacity-0;
+}
+
+.ui-element-visible {
+  @apply transition-all duration-300 translate-y-0 opacity-100;
 }

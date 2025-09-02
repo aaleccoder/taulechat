@@ -14,10 +14,11 @@ import {
 import { styles } from "@/constants/style";
 import { getAllConversations } from "@/lib/database/methods";
 import { useSidebarConversation, useStore } from "@/utils/state";
-import { MessageCircle, MoreHorizontal, Settings, Trash, } from "lucide-react";
+import { MessageCircle, MoreHorizontal, Search, Settings, Trash, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Button } from "./ui/button";
+import { Input } from "./ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
 import { DialogClose } from "@radix-ui/react-dialog";
@@ -34,6 +35,12 @@ export default function AppSidebar() {
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [chatToDelete, setChatToDelete] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Filter conversations based on search query
+  const filteredConversations = conversations.filter((chat) =>
+    (chat.title || "New chat").toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
 
   const handleChatClick = (chatId: string) => {
@@ -83,19 +90,50 @@ export default function AppSidebar() {
           <span className="font-semibold text-lg text-foreground">TauLeChat</span>
         </Link>
       </SidebarHeader>
-      <SidebarContent className="sidebar-content pb-[max(env(safe-area-inset-bottom),theme(spacing.2))]">
+      <SidebarContent className="sidebar-content pb-[max(env(safe-area-inset-bottom),theme(spacing.2))">
         <SidebarGroup>
           <SidebarGroupLabel className="sidebar-group-label">Chats</SidebarGroupLabel>
           <SidebarGroupContent>
+            {/* Search input */}
+            <div className="px-2 mb-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                <Input
+                  placeholder="Search chats..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="search-chat-input pl-9 pr-9"
+                  aria-label="Search conversations"
+                />
+                {searchQuery && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 rounded-full p-0 hover:bg-accent/10"
+                    aria-label="Clear search"
+                  >
+                    <X className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                )}
+              </div>
+            </div>
             <SidebarMenu>
+              {filteredConversations.length === 0 && conversations.length > 0 && (
+                <div className="text-muted-foreground text-sm text-center select-none px-2" aria-live="polite">
+                  <span className="block text-lg mb-2">🔍</span>
+                  <span>No chats found.</span>
+                  <span className="block text-xs mt-1 text-muted-foreground">Try a different search term.</span>
+                </div>
+              )}
               {conversations.length === 0 && (
-                <div className="px-2 py-2 text-muted-foreground text-sm text-center select-none" aria-live="polite">
+                <div className="text-muted-foreground text-sm text-center select-none px-2" aria-live="polite">
                   <span className="block text-lg mb-2">🗨️</span>
                   <span>No conversations yet.</span>
                   <span className="block text-xs mt-1 text-muted-foreground">Start a new chat to see it here.</span>
                 </div>
               )}
-              {conversations.length > 0 && conversations.map((chat) => (
+              {filteredConversations.length > 0 && filteredConversations.map((chat) => (
                 <SidebarMenuItem
                   key={chat.id}
                   className="sidebar-menu-item group flex items-center gap-2"

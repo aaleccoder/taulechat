@@ -199,162 +199,171 @@ export default function ChatInput({ id }: { id: string }) {
   }
 
   return (
-    <form
-      role="form"
-      aria-label="Chat input"
-      className="chat-input-form"
-    >
-      {/* Model picker row (pill above the input) */}
-      <div className="model-picker-row">
-        <Drawer open={open} onOpenChange={setOpen}>
-          <DrawerTrigger asChild>
-            <Button
-              variant="outline"
-              className="model-select-btn"
-              aria-label="Select model"
-            >
-              {selectedModel ? (
-                <span className="truncate">
-                  {(selectedModel as any).name || (selectedModel as any).displayName || (selectedModel as any).id}
-                </span>
-              ) : (
-                <>+ Select model</>
-              )}
-            </Button>
-          </DrawerTrigger>
-          <DrawerContent className="w-full">
-            <ModelsList
-              models={models}
-              setSelectedModel={setSelectedModel}
-              setOpen={setOpen}
-            />
-          </DrawerContent>
-        </Drawer>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="star-btn"
-          disabled={!selectedModel}
-          onClick={handleQuickSetDefault}
-          title={
-            selectedModel && (selectedModel as any)?.id === defaultModelId
-              ? "Default model"
-              : "Set as default"
-          }
-          aria-label="Toggle default model"
-        >
-          <Star
-            className={
-              selectedModel && (selectedModel as any)?.id === defaultModelId
-                ? "text-yellow-300"
-                : ""
-            }
-          />
-        </Button>
-      </div>
-      {/* Attachments strip */}
-      {attachments.length > 0 && (
-        <div className="attachments-strip" aria-label="Attachments preview">
-          {attachments.map((att) => (
-            <div
-              key={att.id}
-              className="attachment-item"
-            >
-              {att.url && att.mimeType.startsWith("image/") ? (
-                <img
-                  src={att.url}
-                  alt={att.fileName}
-                  className="attachment-img"
+    <div className="flex justify-center items-center w-full h-full mx-auto">
+      <form
+        role="form"
+        aria-label="Chat input"
+        className="chat-input-form"
+      >
+        <div className="flex flex-row justify-center items-center w-full">
+          <div className="model-picker-row w-full">
+
+            <Drawer open={open} onOpenChange={setOpen}>
+              <DrawerTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="model-select-btn"
+                  aria-label="Select model"
+                >
+                  {selectedModel ? (
+                    <span className="truncate">
+                      {(selectedModel as any).name || (selectedModel as any).displayName || (selectedModel as any).id}
+                    </span>
+                  ) : (
+                    <>+ Select model</>
+                  )}
+                </Button>
+              </DrawerTrigger>
+              <DrawerContent className="w-full">
+                <ModelsList
+                  models={models}
+                  setSelectedModel={setSelectedModel}
+                  setOpen={setOpen}
                 />
-              ) : (
-                <div className="attachment-file-icon">
-                  {att.fileName.split(".").pop()?.toUpperCase()}
-                </div>
-              )}
-              <div className="attachment-details">
-                <div className="attachment-name" title={att.fileName}>{att.fileName}</div>
-                <div className="attachment-size">{Math.round(att.size / 1024)} KB</div>
-              </div>
-              <Button
-                type="button"
-                aria-label={`Remove ${att.fileName}`}
-                title="Remove attachment"
-                variant="ghost"
-                size="icon"
-                className="attachment-remove-btn"
-                onClick={() => setAttachments((prev) => prev.filter((a) => a.id !== att.id))}
-              >
-                <X />
-              </Button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Input pill bar */}
-      <div className="input-bar">
-        <div
-          className="input-container"
-        >
-          {/* Leading actions */}
-          <Button
-            className="attach-btn"
-            aria-label="Add attachment"
-            title="Add attachment"
-            variant="ghost"
-            type="button"
-            onClick={(e) => handleFileUpload(e)}
-          >
-            <Paperclip className="h-6 w-6" />
-          </Button>
-
-          {/* Textarea */}
-          <div className="textarea-wrapper">
-            <label htmlFor="chat-textarea" className="sr-only">Message</label>
-            <textarea
-              id="chat-textarea"
-              ref={(el) => {
-                textareaRef.current = el;
-                if (el) {
-                  el.style.height = "auto";
-                  el.style.height = Math.min(el.scrollHeight, 192) + "px"; // cap ~12rem
+              </DrawerContent>
+            </Drawer>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="star-btn"
+              disabled={!selectedModel}
+              onClick={handleQuickSetDefault}
+              title={
+                selectedModel && (selectedModel as any)?.id === defaultModelId
+                  ? "Default model"
+                  : "Set as default"
+              }
+              aria-label="Toggle default model"
+            >
+              <Star
+                className={
+                  selectedModel && (selectedModel as any)?.id === defaultModelId
+                    ? "text-yellow-300"
+                    : ""
                 }
+              />
+            </Button>
+          </div>
+        </div>
+        {/* Model picker row (pill above the input) */}
+        {/* Attachments strip */}
+        {attachments.length > 0 && (
+          <div className="attachments-strip" aria-label="Attachments preview">
+            {attachments.map((att) => (
+              <div
+                key={att.id}
+                className="attachment-item"
+              >
+                {att.url && att.mimeType.startsWith("image/") ? (
+                  <img
+                    src={att.url}
+                    alt={att.fileName}
+                    className="attachment-img"
+                  />
+                ) : (
+                  <div className="attachment-file-icon">
+                    {att.fileName.split(".").pop()?.toUpperCase()}
+                  </div>
+                )}
+                <div className="attachment-details">
+                  <div className="attachment-name" title={att.fileName}>{att.fileName}</div>
+                  <div className="attachment-size">{Math.round(att.size / 1024)} KB</div>
+                </div>
+                <Button
+                  type="button"
+                  aria-label={`Remove ${att.fileName}`}
+                  title="Remove attachment"
+                  variant="ghost"
+                  size="icon"
+                  className="attachment-remove-btn"
+                  onClick={() => setAttachments((prev) => prev.filter((a) => a.id !== att.id))}
+                >
+                  <X />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Input pill bar */}
+        <div className="input-bar items-center justify-center">
+          <div
+            className="input-container items-center justify-center"
+          >
+            {/* Leading actions */}
+            <Button
+              className="attach-btn"
+              aria-label="Add attachment"
+              title="Add attachment"
+              variant="ghost"
+              type="button"
+              onClick={(e) => handleFileUpload(e)}
+            >
+              <Paperclip className="h-6 w-6" />
+            </Button>
+
+            {/* Textarea */}
+            <div className="textarea-wrapper">
+              <label htmlFor="chat-textarea" className="sr-only">Message</label>
+              <textarea
+                id="chat-textarea"
+                ref={(el) => {
+                  textareaRef.current = el;
+                  if (el) {
+                    el.style.height = "auto";
+                    el.style.height = Math.min(el.scrollHeight, 192) + "px"; // cap ~12rem
+                  }
+                }}
+                rows={1}
+                aria-multiline
+                aria-label="Type your message"
+                className="textarea"
+                placeholder="Type your message…"
+                onChange={(e) => {
+                  setUserInput(e.target.value);
+                  e.target.style.height = "auto";
+                  e.target.style.height = Math.min(e.target.scrollHeight, 192) + "px";
+                }}
+                value={userInput}
+              />
+            </div>
+
+            <Button
+              className="attach-btn"
+              aria-label="Send message"
+              onClick={(e) => {
+                if (!selectedModel) {
+                  alert("Please select a model before sending.");
+                  return;
+                }
+                sendMessage(e);
               }}
-              rows={1}
-              aria-multiline
-              aria-label="Type your message"
-              className="textarea"
-              placeholder="Type your message…"
-              onChange={(e) => {
-                setUserInput(e.target.value);
-                e.target.style.height = "auto";
-                e.target.style.height = Math.min(e.target.scrollHeight, 192) + "px";
-              }}
-              value={userInput}
-            />
+              variant={"ghost"}
+              type="button"
+              disabled={!selectedModel || !userInput.trim()}
+            >
+              <Send className="h-6 w-6" />
+            </Button>
+
+            {/* trailing space keeps padding symmetric */}
           </div>
 
-          {/* trailing space keeps padding symmetric */}
-        </div>
+          {/* Primary send action aligned right for thumb reachability */}
 
-        {/* Primary send action aligned right for thumb reachability */}
-        <Button
-          className="send-btn"
-          aria-label="Send message"
-          onClick={(e) => {
-            if (!selectedModel) {
-              alert("Please select a model before sending.");
-              return;
-            }
-            sendMessage(e);
-          }}
-          disabled={!selectedModel || !userInput.trim()}
-        >
-          <Send className="h-6 w-6" />
-        </Button>
-      </div>
-    </form>
+        </div>
+      </form>
+    </div>
   );
 }
 

@@ -38,6 +38,24 @@ export const useLoading = create<LoadingStates>((set) => ({
     setLoading: (loading: boolean) => set({ loading }),
 }));
 
+export type UIVisibilityState = {
+    isHeaderVisible: boolean;
+    isChatInputVisible: boolean;
+    isChatExpanded: boolean;
+    setHeaderVisible: (visible: boolean) => void;
+    setChatInputVisible: (visible: boolean) => void;
+    setChatExpanded: (expanded: boolean) => void;
+};
+
+export const useUIVisibility = create<UIVisibilityState>((set) => ({
+    isHeaderVisible: true,
+    isChatInputVisible: true,
+    isChatExpanded: false,
+    setHeaderVisible: (visible: boolean) => set({ isHeaderVisible: visible }),
+    setChatInputVisible: (visible: boolean) => set({ isChatInputVisible: visible }),
+    setChatExpanded: (expanded: boolean) => set({ isChatExpanded: expanded }),
+}));
+
 
 export type SidebarDataState = {
     conversations: Omit<ConversationState, 'messages'>[];

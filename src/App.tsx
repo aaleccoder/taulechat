@@ -11,15 +11,19 @@ import AppSidebar from "./components/Sidebar";
 import SettingsScreen from "./components/Settings";
 import TestComponent from "./components/testcomponent";
 import Home from "./components/Home";
-import { Pen } from "lucide-react";
+import { Pen, Plus } from "lucide-react";
 import { useEffect } from "react";
 import { saveOpenRouterModelsToStore, saveGeminiModelsToStore } from "./utils/store";
 import { fetch } from "@tauri-apps/plugin-http";
 import { Toaster } from "./components/ui/sonner";
 import { ProviderName } from "./components/Settings";
 import { getAPIKeyFromStore } from "./utils/store";
+import { Button } from "@/components/ui/button";
+import { useUIVisibility } from "./utils/state";
 
 function App() {
+  const { isHeaderVisible, isChatExpanded } = useUIVisibility();
+
   useEffect(() => {
     const fetchData = async () => {
 
@@ -42,10 +46,26 @@ function App() {
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
-          <div className="absolute top-4 left-4 z-10">
+          <header className={`app-header transition-all duration-300 ${isHeaderVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
+            }`}>
             <SidebarTrigger className="sidebar-trigger-button" />
-          </div>
-          <main className="flex flex-1 flex-col gap-4 px-4 mt-4 overflow-hidden">
+
+            <div className="absolute left-1/2 transform -translate-x-1/2">
+              <Link to="/" className="">
+                <span className="">TauLeChat</span>
+              </Link>
+            </div>
+
+            <Button asChild variant="ghost" size="sm" className="new-chat-btn">
+              <Link to="/chat">
+                <Pen className="h-5 w-5" />
+                <span className="sr-only">New Chat</span>
+              </Link>
+            </Button>
+          </header>
+
+          <main className={`flex flex-1 flex-col gap-4 overflow-hidden transition-all duration-300 ${isChatExpanded ? 'h-screen' : ''
+            }`}>
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/chat/:id" element={<ChatScreen />} />
@@ -54,7 +74,7 @@ function App() {
               <Route path="/test" element={<TestComponent />} />
             </Routes>
           </main>
-          <Toaster />
+          <Toaster position="top-center" />
         </SidebarInset>
       </SidebarProvider>
     </ThemeProvider >

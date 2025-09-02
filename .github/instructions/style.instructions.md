@@ -64,13 +64,6 @@ This document sets the style and interaction guidelines for all UI components in
 <textarea className="max-h-48 w-full resize-none bg-transparent leading-6 outline-none placeholder:text-muted-foreground/70 motion-safe:transition-colors" />
 ```
 
-## Reusable CSS Classes
-- Create reusable utility classes in `App.css` using the `@apply` directive to encapsulate common Tailwind class combinations.
-- This promotes consistency, reduces code duplication, and improves maintainability.
-- Define all custom classes in `App.css` at the end of the file, after the theme variables.
-- Use descriptive, distinctive class names that reflect their purpose (e.g., `.chat-input-form`, `.model-select-btn`).
-- In TSX files, replace long inline class strings with these reusable class names.
-
 ### How to Create Reusable Classes
 1. Identify repeated or complex class combinations in your components.
 2. Add a new class in `App.css` using `@apply`:
