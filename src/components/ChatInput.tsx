@@ -1,28 +1,23 @@
-import { Send, Paperclip, Star } from "lucide-react";
+import { Send, Paperclip, Star, X } from "lucide-react";
 import { useOpenRouter } from "@/providers/providers-service";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
-import { styles } from "@/constants/style";
 import { OpenRouterModel, GeminiModel, useStore } from "@/utils/state";
 import {
   getDefaultModel,
   getModelsFromStore,
   saveDefaultModel,
 } from "@/utils/store";
-
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandShortcut,
-} from "@/components/ui/command";
-// Removed unused Popover and useIsMobile imports
 import { Drawer, DrawerContent, DrawerTrigger } from "./ui/drawer";
 import React from "react";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { open as openFile } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
@@ -36,7 +31,7 @@ export default function ChatInput({ id }: { id: string }) {
   >(null);
   const { sendPrompt } = useOpenRouter();
   const navigate = useNavigate();
-  // Subscribe to conversation model id to react when a new conversation is created asynchronously
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const conversationModelId = useStore((s) => s.conversation?.model_id);
   const [attachments, setAttachments] = useState<{
     id: string;
@@ -45,10 +40,10 @@ export default function ChatInput({ id }: { id: string }) {
     base64: string;
     bytes: Uint8Array;
     size: number;
-    url?: string; // preview object URL for images
+    url?: string;
   }[]>([]);
   const [defaultModelId, setDefaultModelId] = useState<string | undefined>(
-    undefined,
+    undefined
   );
 
   useEffect(() => {
@@ -61,7 +56,6 @@ export default function ChatInput({ id }: { id: string }) {
         const model_id = conversationModelId;
         setModels(fetchedModels);
 
-        // Prefer the conversation's model if available
         if (model_id) {
           const fromConversation =
             fetchedModels.find((model) => (model as any).id === model_id) || null;
@@ -70,8 +64,6 @@ export default function ChatInput({ id }: { id: string }) {
           return;
         }
 
-        // Otherwise, only fall back to default if user hasn't selected one yet
-        // and we're not in a specific chat (avoid overriding during first navigation)
         if (!id && !selectedModel && default_model_id) {
           const fromDefault =
             fetchedModels.find((model) => (model as any).id === default_model_id) || null;
@@ -85,7 +77,6 @@ export default function ChatInput({ id }: { id: string }) {
     loadModels();
   }, [id, conversationModelId, selectedModel]);
 
-  // Refresh default model when closing the picker, to stay in sync with changes done inside it
   useEffect(() => {
     if (!open) {
       getDefaultModel()
@@ -109,6 +100,9 @@ export default function ChatInput({ id }: { id: string }) {
 
     setUserInput("");
     setAttachments([]);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
   };
 
   const handleQuickSetDefault = async () => {
@@ -205,110 +199,161 @@ export default function ChatInput({ id }: { id: string }) {
   }
 
   return (
-    <form className="flex flex-row justify-center items-center space-x-4 rounded-2xl shadow-2xl w-full z-50 p-2 relative bg-card mb-4">
-      <div className="bg-background flex-1 px-4 py-2 rounded-xl flex-col items-center space-y-4 w-full">
-        {attachments.length > 0 && (
-          <div className="flex flex-row gap-2 flex-wrap mb-2">
-            {attachments.map((att) => (
-              <div key={att.id} className="border rounded-lg p-2 flex items-center gap-2 bg-card/60">
-                {att.url && att.mimeType.startsWith("image/") ? (
-                  <img src={att.url} alt={att.fileName} className="w-12 h-12 object-cover rounded" />
-                ) : (
-                  <div className="w-12 h-12 flex items-center justify-center bg-muted rounded text-xs">
-                    {att.fileName.split(".").pop()?.toUpperCase()}
-                  </div>
-                )}
-                <div className="text-xs max-w-40 truncate">{att.fileName}</div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setAttachments((prev) => prev.filter((a) => a.id !== att.id))}
-                >
-                  ✕
-                </Button>
-              </div>
-            ))}
-          </div>
-        )}
-        <textarea
-          ref={(el) => {
-            if (el) {
-              el.style.height = "auto";
-              el.style.height = el.scrollHeight + "px";
+    <form
+      role="form"
+      aria-label="Chat input"
+      className="chat-input-form"
+    >
+      {/* Model picker row (pill above the input) */}
+      <div className="model-picker-row">
+        <Drawer open={open} onOpenChange={setOpen}>
+          <DrawerTrigger asChild>
+            <Button
+              variant="outline"
+              className="model-select-btn"
+              aria-label="Select model"
+            >
+              {selectedModel ? (
+                <span className="truncate">
+                  {(selectedModel as any).name || (selectedModel as any).displayName || (selectedModel as any).id}
+                </span>
+              ) : (
+                <>+ Select model</>
+              )}
+            </Button>
+          </DrawerTrigger>
+          <DrawerContent className="w-full">
+            <ModelsList
+              models={models}
+              setSelectedModel={setSelectedModel}
+              setOpen={setOpen}
+            />
+          </DrawerContent>
+        </Drawer>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="star-btn"
+          disabled={!selectedModel}
+          onClick={handleQuickSetDefault}
+          title={
+            selectedModel && (selectedModel as any)?.id === defaultModelId
+              ? "Default model"
+              : "Set as default"
+          }
+          aria-label="Toggle default model"
+        >
+          <Star
+            className={
+              selectedModel && (selectedModel as any)?.id === defaultModelId
+                ? "text-yellow-300"
+                : ""
             }
-          }}
-          className="resize-none w-full max-h-48 pr-12 bg-transparent outline-none transition-all duration-200 ease-in-out"
-          placeholder="Type your message..."
-          onChange={(e) => {
-            setUserInput(e.target.value);
-            e.target.style.height = "auto";
-            e.target.style.height = e.target.scrollHeight + "px";
-          }}
-          value={userInput}
-        />
-        <div className="flex flex-row items-center space-x-2">
+          />
+        </Button>
+      </div>
+      {/* Attachments strip */}
+      {attachments.length > 0 && (
+        <div className="attachments-strip" aria-label="Attachments preview">
+          {attachments.map((att) => (
+            <div
+              key={att.id}
+              className="attachment-item"
+            >
+              {att.url && att.mimeType.startsWith("image/") ? (
+                <img
+                  src={att.url}
+                  alt={att.fileName}
+                  className="attachment-img"
+                />
+              ) : (
+                <div className="attachment-file-icon">
+                  {att.fileName.split(".").pop()?.toUpperCase()}
+                </div>
+              )}
+              <div className="attachment-details">
+                <div className="attachment-name" title={att.fileName}>{att.fileName}</div>
+                <div className="attachment-size">{Math.round(att.size / 1024)} KB</div>
+              </div>
+              <Button
+                type="button"
+                aria-label={`Remove ${att.fileName}`}
+                title="Remove attachment"
+                variant="ghost"
+                size="icon"
+                className="attachment-remove-btn"
+                onClick={() => setAttachments((prev) => prev.filter((a) => a.id !== att.id))}
+              >
+                <X />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Input pill bar */}
+      <div className="input-bar">
+        <div
+          className="input-container"
+        >
+          {/* Leading actions */}
           <Button
-            className="flex items-center justify-center h-8 w-8"
-            tabIndex={-1}
+            className="attach-btn"
+            aria-label="Add attachment"
+            title="Add attachment"
+            variant="ghost"
+            type="button"
             onClick={(e) => handleFileUpload(e)}
           >
-            <Paperclip size={styles.iconSize} className="flex-shrink-0" />
+            <Paperclip className="h-6 w-6" />
           </Button>
-          <Drawer open={open} onOpenChange={setOpen}>
-            <DrawerTrigger asChild>
-              <Button
-                variant={"outline"}
-                className="flex items-center justify-center h-8 px-3 rounded-full"
-              >
-                {selectedModel ? <>{(selectedModel as any).name || (selectedModel as any).displayName || (selectedModel as any).id}</> : <>+ Set model</>}
-              </Button>
-            </DrawerTrigger>
-            <DrawerContent className="w-full">
-              <ModelsList
-                models={models}
-                setSelectedModel={setSelectedModel}
-                setOpen={setOpen}
-              />
-            </DrawerContent>
-          </Drawer>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            disabled={!selectedModel}
-            onClick={handleQuickSetDefault}
-            title={
-              selectedModel && (selectedModel as any)?.id === defaultModelId
-                ? "Default model"
-                : "Set as default"
-            }
-          >
-            <Star
-              className={
-                selectedModel && (selectedModel as any)?.id === defaultModelId
-                  ? "text-yellow-300"
-                  : ""
-              }
-            />
-          </Button>
-        </div>
-      </div>
 
-      <Button
-        className="flex items-center justify-center h-12 w-12"
-        onClick={(e) => {
-          if (!selectedModel) {
-            alert("Please select a model before sending.");
-            return;
-          }
-          sendMessage(e);
-        }}
-        disabled={!selectedModel}
-      >
-        <Send size={styles.iconSize} className="flex-shrink-0" />
-      </Button>
+          {/* Textarea */}
+          <div className="textarea-wrapper">
+            <label htmlFor="chat-textarea" className="sr-only">Message</label>
+            <textarea
+              id="chat-textarea"
+              ref={(el) => {
+                textareaRef.current = el;
+                if (el) {
+                  el.style.height = "auto";
+                  el.style.height = Math.min(el.scrollHeight, 192) + "px"; // cap ~12rem
+                }
+              }}
+              rows={1}
+              aria-multiline
+              aria-label="Type your message"
+              className="textarea"
+              placeholder="Type your message…"
+              onChange={(e) => {
+                setUserInput(e.target.value);
+                e.target.style.height = "auto";
+                e.target.style.height = Math.min(e.target.scrollHeight, 192) + "px";
+              }}
+              value={userInput}
+            />
+          </div>
+
+          {/* trailing space keeps padding symmetric */}
+        </div>
+
+        {/* Primary send action aligned right for thumb reachability */}
+        <Button
+          className="send-btn"
+          aria-label="Send message"
+          onClick={(e) => {
+            if (!selectedModel) {
+              alert("Please select a model before sending.");
+              return;
+            }
+            sendMessage(e);
+          }}
+          disabled={!selectedModel || !userInput.trim()}
+        >
+          <Send className="h-6 w-6" />
+        </Button>
+      </div>
     </form>
   );
 }
@@ -322,23 +367,29 @@ function ModelsList({
   setSelectedModel: (model: OpenRouterModel | GeminiModel) => void;
   setOpen: (open: boolean) => void;
 }) {
-  const openRouterModels = models.filter(
-    (model) => (model as any)?.provider === "OpenRouter",
-  ) as OpenRouterModel[];
-  const geminiModels = models.filter(
-    (model) => (model as any)?.provider === "Gemini",
-  ) as GeminiModel[];
-  const [searchValue, setSearchValue] = useState(""); // Add this line
-  const [defaultModel, setDefaultModel] = useState<string | undefined>(
-    undefined,
-  );
   const [providerFilter, setProviderFilter] = useState<"all" | "OpenRouter" | "Gemini">("all");
+  const [searchValue, setSearchValue] = useState("");
+  // Unified model list, sorted by provider for label separation
+  const filteredModels = models.filter((model) => {
+    if (providerFilter === "all") return true;
+    return (model as any)?.provider === providerFilter;
+  });
+  // Sort so OpenRouter comes first, then Gemini
+  filteredModels.sort((a, b) => {
+    const pa = (a as any)?.provider;
+    const pb = (b as any)?.provider;
+    if (pa === pb) return 0;
+    if (pa === "OpenRouter") return -1;
+    return 1;
+  });
+  const openRouterCount = models.filter((m) => (m as any)?.provider === "OpenRouter").length;
+  const geminiCount = models.filter((m) => (m as any)?.provider === "Gemini").length;
+  const [defaultModel, setDefaultModel] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     const loadDefaultModel = async () => {
       setDefaultModel(await getDefaultModel());
     };
-
     loadDefaultModel();
   }, []);
 
@@ -351,150 +402,92 @@ function ModelsList({
     setDefaultModel(modelId);
   };
 
+
+
   return (
-    <Command className="mt-4">
-      <CommandInput
-        placeholder="Search model..."
-        value={searchValue}
-        onValueChange={setSearchValue}
-      />
-      {/* Provider filter tabs */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b overflow-x-auto">
-        <Button
-          size="sm"
-          variant={providerFilter === "all" ? "default" : "outline"}
-          onClick={() => setProviderFilter("all")}
-        >
-          All <span className="ml-2 rounded-full bg-primary/10 text-primary text-[10px] px-2 py-0.5">
-            {openRouterModels.length + geminiModels.length}
-          </span>
-        </Button>
-        <Button
-          size="sm"
-          variant={providerFilter === "OpenRouter" ? "default" : "outline"}
-          onClick={() => setProviderFilter("OpenRouter")}
-        >
-          OpenRouter
-          <span className="ml-2 rounded-full bg-blue-500/10 text-blue-500 text-[10px] px-2 py-0.5">
-            {openRouterModels.length}
-          </span>
-        </Button>
-        <Button
-          size="sm"
-          variant={providerFilter === "Gemini" ? "default" : "outline"}
-          onClick={() => setProviderFilter("Gemini")}
-        >
-          Gemini
-          <span className="ml-2 rounded-full bg-green-500/10 text-green-500 text-[10px] px-2 py-0.5">
-            {geminiModels.length}
-          </span>
-        </Button>
+    <div role="listbox" aria-label="Model picker" className="models-list">
+      {/* Search input */}
+      <div className="search-input-wrapper">
+        <input
+          type="text"
+          className="search-input"
+          placeholder="Search model..."
+          aria-label="Search model"
+          value={searchValue}
+          onChange={e => setSearchValue(e.target.value)}
+        />
       </div>
-      <CommandList>
-        <CommandEmpty>No model found.</CommandEmpty>
-        {(providerFilter === "all" || providerFilter === "OpenRouter") && openRouterModels.length > 0 && (
-          <CommandGroup
-            heading={
-              <div className="flex items-center text-sm font-medium">
-                <span className="inline-flex items-center gap-2">
-                  <span className="inline-block h-2 w-2 rounded-full bg-blue-500" />
-                  OpenRouter
-                </span>
-                <span className="ml-2 rounded-full bg-blue-500/10 text-blue-500 text-[10px] px-2 py-0.5">
-                  {openRouterModels.length}
-                </span>
-              </div>
-            }
-          >
-            {openRouterModels.map((model) => (
-              <div key={model.id} className="flex flex-row items-center w-full">
-                <CommandItem
-                  key={model.id}
-                  onSelect={() => {
-                    setOpen(false);
-                    setSelectedModel(model);
-                  }}
-                  className="w-full"
-                >
-                  <div className="flex items-center gap-2 w-full">
-                    <span className="truncate">{model.name}</span>
-                    <span className="ml-auto rounded-full bg-blue-500/10 text-blue-500 text-[10px] px-2 py-0.5">OpenRouter</span>
-                  </div>
-                </CommandItem>
-                {searchValue === "" && (
-                  <CommandShortcut>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="p-0 z-50"
-                      onClick={() => handleSaveDefaultModel(model.id)}
-                    >
-                      {model.id === defaultModel ? (
-                        <Star className="text-yellow-300" />
-                      ) : (
-                        <Star />
+      <div className="filter-select-wrapper">
+        <Select value={providerFilter} onValueChange={v => setProviderFilter(v as any)}>
+          <SelectTrigger className="filter-select">
+            <SelectValue aria-label="Filter by provider">
+              {providerFilter === "all"
+                ? `All (${openRouterCount + geminiCount})`
+                : providerFilter === "OpenRouter"
+                  ? `OpenRouter (${openRouterCount})`
+                  : `Gemini (${geminiCount})`}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All ({openRouterCount + geminiCount})</SelectItem>
+            <SelectItem value="OpenRouter">OpenRouter ({openRouterCount})</SelectItem>
+            <SelectItem value="Gemini">Gemini ({geminiCount})</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      {/* Model list */}
+      <div className="model-list-container">
+        {filteredModels.length === 0 ? (
+          <div className="no-models">No model found.</div>
+        ) : (
+          <div className="inner-model-list">
+            {(() => {
+              let lastProvider: string | null = null;
+              return filteredModels
+                .filter((model) => {
+                  const name = (model as any).name || (model as any).displayName || (model as any).id;
+                  return name?.toLowerCase().includes(searchValue.toLowerCase());
+                })
+                .map((model, idx, arr) => {
+                  const provider = (model as any)?.provider;
+                  const name = (model as any).name || (model as any).displayName || (model as any).id;
+                  const supportsImage = provider === "OpenRouter" && Array.isArray((model as any)?.architecture?.input_modalities) && (model as any).architecture.input_modalities.includes("image");
+                  const showLabel = provider !== lastProvider;
+                  lastProvider = provider;
+                  return (
+                    <React.Fragment key={name}>
+                      {showLabel && (
+                        <div className={
+                          provider === "OpenRouter"
+                            ? "provider-label-openrouter"
+                            : "provider-label-gemini"
+                        }>
+                          {provider}
+                        </div>
                       )}
-                    </Button>
-                  </CommandShortcut>
-                )}
-              </div>
-            ))}
-          </CommandGroup>
-        )}
-        {(providerFilter === "all" || providerFilter === "Gemini") && geminiModels.length > 0 && (
-          <CommandGroup
-            heading={
-              <div className="flex items-center text-sm font-medium">
-                <span className="inline-flex items-center gap-2">
-                  <span className="inline-block h-2 w-2 rounded-full bg-green-500" />
-                  Gemini
-                </span>
-                <span className="ml-2 rounded-full bg-green-500/10 text-green-500 text-[10px] px-2 py-0.5">
-                  {geminiModels.length}
-                </span>
-              </div>
-            }
-          >
-            {geminiModels.map((model) => {
-              const id = (model as any).id as string;
-              const label = (model as any).name || (model as any).displayName || id;
-              return (
-                <div key={id} className="flex flex-row items-center w-full">
-                  <CommandItem
-                    key={id}
-                    onSelect={() => {
-                      setOpen(false);
-                      setSelectedModel(model);
-                    }}
-                    className="w-full"
-                  >
-                    <div className="flex items-center gap-2 w-full">
-                      <span className="truncate">{label}</span>
-                      <span className="ml-auto rounded-full bg-green-500/10 text-green-500 text-[10px] px-2 py-0.5">Gemini</span>
-                    </div>
-                  </CommandItem>
-                  {searchValue === "" && (
-                    <CommandShortcut>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="p-0 z-50"
-                        onClick={() => handleSaveDefaultModel(id)}
+                      <div
+                        role="option"
+                        aria-selected={false}
+                        tabIndex={0}
+                        className="model-pill model-pill-default"
+                        onClick={() => { setOpen(false); setSelectedModel(model); }}
+                        onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { setOpen(false); setSelectedModel(model); } }}
                       >
-                        {id === defaultModel ? (
-                          <Star className="text-yellow-300" />
-                        ) : (
-                          <Star />
+                        <span className="model-name">{name}</span>
+                        {/* Image modality badge for OpenRouter only */}
+                        {supportsImage && (
+                          <span className="image-badge" title="Supports image input">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-blue-500"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="2" /><circle cx="8.5" cy="13.5" r="2.5" stroke="currentColor" strokeWidth="2" /><path d="M21 19l-5-6-4 5-3-4-4 5" stroke="currentColor" strokeWidth="2" /></svg>
+                          </span>
                         )}
-                      </Button>
-                    </CommandShortcut>
-                  )}
-                </div>
-              );
-            })}
-          </CommandGroup>
+                      </div>
+                    </React.Fragment>
+                  );
+                });
+            })()}
+          </div>
         )}
-      </CommandList>
-    </Command>
+      </div>
+    </div>
   );
 }

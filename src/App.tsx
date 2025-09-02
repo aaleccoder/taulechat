@@ -13,7 +13,7 @@ import TestComponent from "./components/testcomponent";
 import Home from "./components/Home";
 import { Pen } from "lucide-react";
 import { useEffect } from "react";
-import { saveOpenRouterModelsToStore,saveGeminiModelsToStore } from "./utils/store";
+import { saveOpenRouterModelsToStore, saveGeminiModelsToStore } from "./utils/store";
 import { fetch } from "@tauri-apps/plugin-http";
 import { Toaster } from "./components/ui/sonner";
 import { ProviderName } from "./components/Settings";
@@ -42,19 +42,9 @@ function App() {
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 py-2">
-            <SidebarTrigger className="-ml-1" />
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-semibold">TauLeChat</h1>
-            </div>
-            <Link
-              to="/chat"
-              className="ml-auto bg-primary text-black px-2 py-2 rounded hover:bg-accent/90 flex items-center gap-2"
-            >
-              New Chat
-              <Pen className="h-4 w-4" />
-            </Link>
-          </header>
+          <div className="absolute top-4 left-4 z-10">
+            <SidebarTrigger className="sidebar-trigger-button" />
+          </div>
           <main className="flex flex-1 flex-col gap-4 px-4 mt-4 overflow-hidden">
             <Routes>
               <Route path="/" element={<Home />} />
@@ -67,7 +57,7 @@ function App() {
           <Toaster />
         </SidebarInset>
       </SidebarProvider>
-    </ThemeProvider>
+    </ThemeProvider >
   );
 }
 

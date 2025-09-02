@@ -37,7 +37,7 @@ export default function ChatScreen() {
   }, [id]);
 
   return (
-    <div className="flex flex-col h-[90vh] !overflow-hidden bg-background">
+    <div className="flex flex-col h-screen !overflow-hidden bg-background py-8">
       <div className="flex-1 overflow-y-auto">
         <ChatMessages />
       </div>

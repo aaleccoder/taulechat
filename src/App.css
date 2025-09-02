@@ -1,3 +1,5 @@
+/* Reusable Tailwind classes for Sidebar component */
+
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -8,6 +10,7 @@ body {
 }
 
 :root {
+  --safe-area-bottom: max(env(safe-area-inset-bottom), 0.5rem);
   --background: #eff1f5;
   --foreground: #4c4f69;
   --card: #ffffff;
@@ -180,8 +183,243 @@ body {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
     letter-spacing: var(--tracking-normal);
   }
+}
+
+/* Reusable Tailwind classes for ChatInput component */
+
+.chat-input-form {
+  @apply w-full z-50 bg-transparent px-2 pt-2;
+  padding-bottom: var(--safe-area-bottom);
+}
+
+.model-picker-row {
+  @apply mb-2 flex items-center gap-2;
+}
+
+.model-select-btn {
+  @apply h-10 rounded-full px-3 truncate max-w-full flex-1 transition-all duration-150 hover:bg-accent/10 active:scale-[0.98];
+}
+
+.star-btn {
+  @apply h-10 w-10 transition-transform duration-150 active:scale-95;
+}
+
+.attachments-strip {
+  @apply mb-2 -mx-1 flex gap-2 overflow-x-auto px-1;
+}
+
+.attachment-item {
+  @apply flex items-center gap-2 rounded-xl border bg-card/70 px-2 py-2 shadow-sm min-w-[164px];
+}
+
+.attachment-img {
+  @apply h-12 w-12 flex-shrink-0 rounded object-cover;
+}
+
+.attachment-file-icon {
+  @apply h-12 w-12 flex items-center justify-center rounded bg-muted text-xs;
+}
+
+.attachment-details {
+  @apply min-w-0;
+}
+
+.attachment-name {
+  @apply truncate text-xs;
+}
+
+.attachment-size {
+  @apply text-[10px] text-muted-foreground;
+}
+
+.attachment-remove-btn {
+  @apply ml-1 h-10 w-10 transition-transform duration-150 active:scale-95;
+}
+
+.input-bar {
+  @apply flex w-full items-end gap-2;
+}
+
+.input-container {
+  @apply flex min-h-12 flex-1 items-end gap-2 rounded-full border bg-card px-2 py-2 shadow-md transition-shadow focus-within:shadow-lg focus-within:ring-2 focus-within:ring-ring/50;
+}
+
+.attach-btn {
+  @apply h-12 w-12 flex-shrink-0 rounded-full transition-all duration-150 hover:bg-accent/10 active:scale-95;
+}
+
+.textarea-wrapper {
+  @apply flex-1 py-1;
+}
+
+.textarea {
+  @apply max-h-48 w-full resize-none bg-transparent leading-6 outline-none placeholder:text-muted-foreground/70 transition-colors duration-150;
+}
+
+.send-btn {
+  @apply h-14 w-14 flex-shrink-0 rounded-full shadow-lg transition-all duration-150 hover:shadow-xl active:scale-95;
+}
+
+.models-list {
+  @apply mt-4 overflow-x-visible overflow-y-visible;
+}
+
+.search-input {
+  @apply w-full rounded-full border bg-card px-4 py-2 text-base shadow-sm focus:ring-2 focus:ring-ring/50 transition-all duration-150;
+}
+
+.filter-select {
+  @apply w-full rounded-full border bg-card px-4 py-2 text-base shadow-sm focus:ring-2 focus:ring-ring/50 transition-all duration-150;
+}
+
+.model-list-container {
+  @apply px-4 pb-2 overflow-y-auto max-h-[40vh];
+}
+
+.no-models {
+  @apply text-muted-foreground text-center py-8;
+}
+
+.inner-model-list {
+  @apply mb-2 overflow-y-auto max-h-[38vh];
+}
+
+.provider-label-openrouter {
+  @apply text-xs font-semibold mb-2 text-blue-500;
+}
+
+.provider-label-gemini {
+  @apply text-xs font-semibold mb-2 text-green-500;
+}
+
+.model-pill {
+  @apply flex items-center gap-2 w-full rounded-full px-4 py-3 mb-2 shadow-sm border transition-all duration-150 active:scale-95 cursor-pointer;
+}
+
+.model-pill-selected {
+  @apply bg-accent/10 border-accent;
+}
+
+.model-pill-default {
+  @apply bg-card border-card;
+}
+
+.model-name {
+  @apply truncate font-medium;
+}
+
+.image-badge {
+  @apply ml-2 flex items-center;
+}
+
+.search-input-wrapper {
+  @apply px-4 pb-2 overflow-x-visible overflow-y-visible;
+}
+
+.filter-select-wrapper {
+  @apply px-4 pb-2 overflow-x-visible overflow-y-visible;
+}
+
+.sidebar-root {
+  @apply bg-background border-r shadow-md min-w-[260px] transition-shadow;
+}
+
+.sidebar-header {
+  @apply py-4 px-2 border-b flex flex-row;
+}
+
+.sidebar-logo {
+  @apply flex items-center gap-2 px-2 py-2 rounded-full transition-all duration-150 focus-visible:ring-2 focus-visible:ring-ring/50;
+}
+
+.sidebar-content {
+  @apply py-2 px-2;
+}
+
+.sidebar-group-label {
+  @apply text-muted-foreground px-2 py-1;
+}
+
+.chat-list-btn {
+  @apply w-full justify-start rounded-full px-2 py-2 transition-colors hover:bg-accent/10 focus-visible:ring-2 focus-visible:ring-ring/50;
+}
+
+.chat-list-btn-active {
+  @apply bg-card shadow-md;
+}
+
+.sidebar-action-btn {
+  @apply rounded-full flex items-center justify-center transition-all hover:bg-accent/10 active:scale-95
+}
+
+.sidebar-menu-item {
+  @apply flex flex-row items-center justify-between;
+}
+
+.sidebar-trigger-button {
+  @apply -ml-1 bg-accent text-black rounded-full w-10 h-10
+}
+
+.sidebar-dropdown-content {
+  @apply bg-card border shadow-md rounded-xl;
+}
+
+.sidebar-dropdown-item {
+  @apply flex items-center gap-2 text-destructive hover:bg-destructive/10 rounded-full px-2 py-2 transition-colors;
+}
+
+.sidebar-footer {
+  @apply py-4 px-2 border-t;
+}
+
+.settings-btn {
+  @apply h-12 w-full rounded-full flex items-center gap-2 transition-all duration-150 hover:bg-accent/10 active:scale-95 focus-visible:ring-2 focus-visible:ring-ring/50;
+}
+
+.sidebar-dialog-content {
+  @apply bg-card border shadow-lg rounded-xl;
+}
+
+.sidebar-dialog-title {
+  @apply text-lg font-semibold;
+}
+
+.sidebar-dialog-description {
+  @apply text-muted-foreground;
+}
+
+.sidebar-dialog-footer {
+  @apply flex gap-2 justify-end;
+}
+
+.sidebar-dialog-btn {
+  @apply rounded-full px-4 py-2 transition-all;
+}
+
+/* Reusable Tailwind classes for Home component */
+
+.home-container {
+  @apply container flex flex-col items-center justify-center min-h-screen px-4 py-8 gap-6;
+  padding-bottom: var(--safe-area-bottom);
+}
+
+.home-icon {
+  @apply h-24 w-24 mx-auto text-primary;
+}
+
+.home-title {
+  @apply text-4xl font-bold text-center;
+}
+
+.home-description {
+  @apply max-w-md mx-auto text-center text-muted-foreground text-lg leading-relaxed;
+}
+
+.home-button {
+  @apply h-12 px-6 rounded-full shadow-lg transition-all duration-150 active:scale-95;
 }

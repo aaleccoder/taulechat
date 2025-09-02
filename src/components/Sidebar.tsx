@@ -71,49 +71,65 @@ export default function AppSidebar() {
   }, []);
 
   return (
-    <Sidebar>
-      <SidebarHeader>
-        <Link to={"/"} className="flex items-center gap-2 px-2 py-2" >
-          <MessageCircle size={styles.iconSize} />
-          <span className="font-semibold text-lg">TauLeChat</span>
+
+    <Sidebar variant="floating" className="sidebar-root">
+      <SidebarHeader className="sidebar-header">
+        <Link
+          to={"/"}
+          className="sidebar-logo"
+          aria-label="Go to home"
+        >
+          <MessageCircle size={styles.iconSize} className="text-accent" aria-hidden="true" />
+          <span className="font-semibold text-lg text-foreground">TauLeChat</span>
         </Link>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="sidebar-content pb-[max(env(safe-area-inset-bottom),theme(spacing.2))]">
         <SidebarGroup>
-          <SidebarGroupLabel>Chats</SidebarGroupLabel>
+          <SidebarGroupLabel className="sidebar-group-label">Chats</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {conversations.length === 0 && <div className="px-2 py-2 text-muted-foreground">No conversations found.</div>}
+              {conversations.length === 0 && (
+                <div className="px-2 py-2 text-muted-foreground text-sm text-center select-none" aria-live="polite">
+                  <span className="block text-lg mb-2">🗨️</span>
+                  <span>No conversations yet.</span>
+                  <span className="block text-xs mt-1 text-muted-foreground">Start a new chat to see it here.</span>
+                </div>
+              )}
               {conversations.length > 0 && conversations.map((chat) => (
-                <SidebarMenuItem key={chat.id} className="flex flex-row">
+                <SidebarMenuItem
+                  key={chat.id}
+                  className="sidebar-menu-item group flex items-center gap-2"
+                  aria-label={`Open chat: ${chat.title || 'New chat'}`}
+                >
                   <SidebarMenuButton
                     onClick={() => handleChatClick(chat.id)}
-                    className={`w-full justify-start ${chat.id === activeChat ? "!bg-card hover:text-white" : ""}`}
+                    className={`chat-list-btn flex-1 min-w-0 ${chat.id === activeChat ? ' chat-list-btn-active' : ''}`}
+                    aria-label={chat.title || 'New chat'}
                   >
-                    <div className="flex flex-row gap-1 w-full items-center">
-                      <div className="flex items-center justify-between w-full">
-                        <span className="font-medium truncate">
-                          {chat.title || "New chat"}
-                        </span>
-                      </div>
-                    </div>
+                    <span className="truncate text-foreground group-hover:text-accent motion-safe:transition-colors">
+                      {chat.title || "New chat"}
+                    </span>
                   </SidebarMenuButton>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <SidebarMenuAction className="hover:bg-muted">
-                        <MoreHorizontal className="h-4 w-4 text-white" />
+                      <SidebarMenuAction
+                        className="sidebar-action-btn opacity-0 group-hover:opacity-100 flex items-center justify-center"
+                        aria-label="Chat actions"
+                      >
+                        <MoreHorizontal className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
                       </SidebarMenuAction>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent side="top" align="start">
+                    <DropdownMenuContent side="top" align="end" className="sidebar-dropdown-content">
                       <DropdownMenuItem
                         onClick={() => {
                           setChatToDelete(chat.id);
                           setDeleteDialogOpen(true);
                         }}
-                        className=""
+                        className="sidebar-dropdown-item"
+                        aria-label="Delete chat"
                       >
+                        <Trash className="h-4 w-4 mr-2" aria-hidden="true" />
                         <span className="w-full">Delete</span>
-                        <Trash className="ml-2 text-destructive" />
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -123,34 +139,39 @@ export default function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="sidebar-footer">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <Button onClick={() => { navigate("/settings") }} variant="outline" className="flex items-center gap-2">
-                <Settings size={styles.iconSize} />
-                <span>Settings</span>
+              <Button
+                onClick={() => { navigate("/settings") }}
+                variant="outline"
+                className="settings-btn"
+                aria-label="Open settings"
+              >
+                <Settings size={styles.iconSize} className="text-muted-foreground" aria-hidden="true" />
+                <span className="text-foreground">Settings</span>
               </Button>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sidebar-dialog-content">
           <DialogHeader>
-            <DialogTitle>Are you sure?</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="sidebar-dialog-title">Are you sure?</DialogTitle>
+            <DialogDescription className="sidebar-dialog-description">
               This action cannot be undone. This will permanently delete the chat.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
+          <DialogFooter className="sidebar-dialog-footer">
             <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
+              <Button variant="outline" className="sidebar-dialog-btn" aria-label="Cancel">Cancel</Button>
             </DialogClose>
-            <Button variant="destructive" onClick={() => handleChatDelete(chatToDelete)}>Delete</Button>
+            <Button variant="destructive" className="sidebar-dialog-btn" onClick={() => handleChatDelete(chatToDelete)} aria-label="Delete chat">Delete</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Sidebar >
+    </Sidebar>
   );
 }
