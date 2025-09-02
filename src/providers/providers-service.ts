@@ -3,7 +3,7 @@ import { createMessage, createMessageFile } from "@/lib/database/methods";
 import { ChatMessage, MessageFile, useLoading, useSidebarConversation, useStore } from "@/utils/state";
 import { getAPIKeyFromStore, getModelById } from "@/utils/store";
 import { fetch } from "@tauri-apps/plugin-http";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
 function createTitleFromPrompt(prompt: string) {
@@ -23,18 +23,10 @@ class HttpError extends Error {
   }
 }
 
+
 export function useOpenRouter() {
   const [text, setText] = useState("");
   const [loading] = useState(false);
-
-  useEffect(() => {
-    const loadKeys = async () => {
-      const openRouterKey = await getAPIKeyFromStore(ProviderName.OpenRouter);
-      const geminiKey = await getAPIKeyFromStore(ProviderName.Gemini);
-      setText(openRouterKey || geminiKey || "");
-    };
-    loadKeys();
-  }, []);
 
   type SelectedAttachment = {
     id: string;
@@ -149,7 +141,7 @@ export function useOpenRouter() {
         const apiKey = await getAPIKeyFromStore(
           isGemini ? ProviderName.Gemini : ProviderName.OpenRouter,
         );
-    const response = await fetch(
+        const response = await fetch(
           isGemini
             ? "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
             : "https://openrouter.ai/api/v1/chat/completions",
@@ -209,7 +201,7 @@ export function useOpenRouter() {
         }
 
         useSidebarConversation.getState().setActiveChat(id);
-  await createMessage(assistantID, id, "assistant", accumulated);
+        await createMessage(assistantID, id, "assistant", accumulated);
       } catch (error) {
         console.error("Error sending prompt:", error);
         if (error instanceof HttpError) {

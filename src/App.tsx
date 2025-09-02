@@ -13,24 +13,25 @@ import TestComponent from "./components/testcomponent";
 import Home from "./components/Home";
 import { Pen } from "lucide-react";
 import { useEffect } from "react";
-import { saveOpenRouterModelsToStore } from "./utils/store";
+import { saveOpenRouterModelsToStore,saveGeminiModelsToStore } from "./utils/store";
+import { fetch } from "@tauri-apps/plugin-http";
 import { Toaster } from "./components/ui/sonner";
+import { ProviderName } from "./components/Settings";
+import { getAPIKeyFromStore } from "./utils/store";
 
 function App() {
   useEffect(() => {
     const fetchData = async () => {
-      const res = await fetch("https://openrouter.ai/api/v1/models");
-      if (!res.ok) {
+
+      const geminiApiKey = await getAPIKeyFromStore(ProviderName.Gemini);
+      const [openRouterModelsRes, geminiModelsRes] = await Promise.all([fetch("https://openrouter.ai/api/v1/models"), fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${geminiApiKey}`)]);
+      if (!openRouterModelsRes.ok || !geminiModelsRes.ok) {
         throw new Error("Failed to fetch models");
       }
-      const data = await res.json();
-      // Add provider field to models
-      const modelsWithProvider = data.data.map((model: any) => ({
-        ...model,
-        provider: "OpenRouter" as const,
-      }));
-      // store only the models array (data.data)
-      await saveOpenRouterModelsToStore(modelsWithProvider);
+      const [openRouterData, geminiData] = await Promise.all([openRouterModelsRes.json(), geminiModelsRes.json()]);
+
+      await saveGeminiModelsToStore(geminiData.models);
+      await saveOpenRouterModelsToStore(openRouterData.data);
     };
 
     fetchData();
@@ -41,14 +42,14 @@ function App() {
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+          <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 py-2">
             <SidebarTrigger className="-ml-1" />
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-semibold">TauLeChat</h1>
             </div>
             <Link
               to="/chat"
-              className="ml-auto bg-primary text-black px-4 py-2 rounded hover:bg-accent/90 flex items-center gap-2"
+              className="ml-auto bg-primary text-black px-2 py-2 rounded hover:bg-accent/90 flex items-center gap-2"
             >
               New Chat
               <Pen className="h-4 w-4" />

@@ -127,7 +127,7 @@ export default function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <Button onClick={() => { navigate("/settings") }} className="flex items-center gap-2">
+              <Button onClick={() => { navigate("/settings") }} variant="outline" className="flex items-center gap-2">
                 <Settings size={styles.iconSize} />
                 <span>Settings</span>
               </Button>

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { styles } from "@/constants/style";
-import { Model, useStore } from "@/utils/state";
+import { OpenRouterModel, useStore } from "@/utils/state";
 import {
   getDefaultModel,
   getModelsFromStore,
@@ -34,9 +34,9 @@ import { invoke } from "@tauri-apps/api/core";
 
 export default function ChatInput({ id }: { id: string }) {
   const [userInput, setUserInput] = useState("");
-  const [models, setModels] = useState<Model[]>([]);
+  const [models, setModels] = useState<OpenRouterModel[]>([]);
   const [open, setOpen] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<Model | null>(null);
+  const [selectedModel, setSelectedModel] = useState<OpenRouterModel | null>(null);
   const { sendPrompt } = useOpenRouter();
   const navigate = useNavigate();
   const [attachments, setAttachments] = useState<{
@@ -242,7 +242,7 @@ export default function ChatInput({ id }: { id: string }) {
                   {selectedModel ? <>{selectedModel.name}</> : <>+ Set model</>}
                 </Button>
               </DrawerTrigger>
-              <DrawerContent className="w-[200px] p-0">
+              <DrawerContent className="w-full">
                 <ModelsList
                   models={models}
                   setSelectedModel={setSelectedModel}
@@ -274,8 +274,8 @@ function ModelsList({
   models,
   setSelectedModel,
 }: {
-  models: Model[];
-  setSelectedModel: (model: Model) => void;
+  models: OpenRouterModel[];
+  setSelectedModel: (model: OpenRouterModel) => void;
 }) {
   const openRouterModels = models.filter(
     (model) => model.provider === "OpenRouter",
@@ -304,7 +304,7 @@ function ModelsList({
   };
 
   return (
-    <Command>
+    <Command className="mt-4">
       <CommandInput
         placeholder="Search model..."
         value={searchValue}

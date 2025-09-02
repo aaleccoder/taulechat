@@ -19,7 +19,7 @@
           "url": "https://openrouter.ai/api/v1/*"
         },
         {
-          "url": "https://generativelanguage.googleapis.com/v1beta/openai/*"
+          "url": "https://generativelanguage.googleapis.com/v1beta/*"
         }
       ],
       "deny": [

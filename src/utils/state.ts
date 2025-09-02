@@ -69,8 +69,24 @@ export type ChatConversationsState = {
     clearAll: () => void;
 };
 
+export type GeminiModel = {
+    name: string;
+    version: string;
+    displayName: string;
+    description: string;
+    inputTokenLimit: number;
+    outputTokenLimit: number;
+    supportedGenerationMethods: string[];
+    maxTemperature: number;
+    temperature: number;
+    topK: number;
+    topP: number;
+    thinking: boolean;
+    [key: string]: any;
+};
 
-export type Model = {
+
+export type OpenRouterModel = {
     id: string;
     name: string;
     provider: 'OpenRouter' | 'Gemini';
@@ -102,6 +118,7 @@ export type Model = {
     hugging_face_id?: string;
     per_request_limits?: Record<string, any>;
     supported_parameters?: string[];
+    [key: string]: any;
 };
 
 export const useStore = create<ChatConversationsState>((set, get) => ({
