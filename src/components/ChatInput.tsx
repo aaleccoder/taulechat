@@ -19,7 +19,7 @@ export default function ChatInput({ id }: { id: string }) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const conversationModelId = useStore((s) => s.conversation?.model_id);
   const [defaultModelId, setDefaultModelId] = useState<string | undefined>(undefined);
-  const { attachments, handleFileUpload, removeAttachment, setAttachments } = useAttachments(selectedModel);
+  const { attachments, handleFileUpload, removeAttachment, setAttachments, isProcessing } = useAttachments(selectedModel);
 
   useEffect(() => {
     const loadModels = async () => {
@@ -58,6 +58,12 @@ export default function ChatInput({ id }: { id: string }) {
   const sendMessage = async (e?: React.MouseEvent<HTMLButtonElement>) => {
     if (e) e.preventDefault();
     if (!userInput.trim()) return;
+
+    if (isProcessing) {
+      toast.error("Please wait for images to finish processing");
+      return;
+    }
+
     let chatId = id;
     if (!chatId) {
       const newId = crypto.randomUUID();
@@ -176,7 +182,7 @@ export default function ChatInput({ id }: { id: string }) {
               }}
               variant={"ghost"}
               type="button"
-              disabled={!selectedModel || !userInput.trim()}
+              disabled={!selectedModel || !userInput.trim() || isProcessing}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />

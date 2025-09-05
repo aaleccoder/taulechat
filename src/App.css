@@ -251,6 +251,14 @@ body {
   @apply ml-1 h-10 w-10 transition-transform duration-150 active:scale-95;
 }
 
+.attachment-loading {
+  @apply opacity-75;
+}
+
+.attachment-loading-placeholder {
+  @apply h-12 w-12 flex flex-col items-center justify-center rounded bg-muted/50 text-xs gap-1;
+}
+
 .input-bar {
   @apply flex w-full items-end gap-2;
 }
