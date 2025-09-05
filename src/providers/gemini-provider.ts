@@ -26,7 +26,7 @@ export class GeminiProvider implements ChatProvider {
         }
         return { role: m.role === "assistant" ? "model" : "user", parts };
       }),
-      tools: [{ google_search: {} }],
+      tools: [{"google_search": {}} ],
     });
     const response = await fetch(url, {
       method: "POST",
@@ -87,6 +87,8 @@ export class GeminiProvider implements ChatProvider {
           modelVersion: parsed?.modelVersion,
           responseId: parsed?.responseId,
         };
+
+        console.log(parsed);
       } catch {}
     }
     if (images.length > 0) {
