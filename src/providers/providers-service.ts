@@ -75,7 +75,7 @@ export function useChatService() {
         // Store user message and attachments
   await storeUserMessage(id, prompt, attachments);
 
-        // Add assistant placeholder
+        // Add assistant placeholder (support files/images)
         const assistantID = crypto.randomUUID();
         useStore.getState().addMessage({
           id: assistantID,
@@ -83,6 +83,7 @@ export function useChatService() {
           role: "assistant",
           conversation_id: id,
           created_at: new Date().toISOString(),
+          files: [],
         });
 
         // Format messages for provider
@@ -113,6 +114,7 @@ export function useChatService() {
 
         // Stream response from provider
         let reader;
+        let generatedFiles: any[] = [];
         if (isGemini) {
           reader = await provider.streamResponse({
             modelId: model_id,
@@ -134,21 +136,51 @@ export function useChatService() {
           const { done, value } = await reader.read();
           if (done) break;
           const { token, metadata: meta } = provider.parseStreamChunk(value, decoder);
-          accumulated += token;
-          setText(accumulated);
-          if (isGemini && meta) metadata = meta;
-          streamAssistantMessageUpdate(assistantID, accumulated, isGemini ? metadata : undefined);
+          // If images are present in metadata, handle them
+          if (meta && meta.images && Array.isArray(meta.images)) {
+            // For each image, create a MessageFile entry
+            generatedFiles = meta.images.map((img: any, idx: number) => ({
+              id: crypto.randomUUID(),
+              message_id: assistantID,
+              file_name: `generated-image-${idx + 1}.${(img.mimeType || "image/png").split("/")[1]}`,
+              mime_type: img.mimeType || "image/png",
+              data: img.data,
+              size: Math.floor((img.data.length * 3) / 4),
+              created_at: new Date().toISOString(),
+            }));
+            setText("");
+            streamAssistantMessageUpdate(assistantID, "", { files: generatedFiles });
+          } else {
+            accumulated += token;
+            setText(accumulated);
+            if (isGemini && meta) metadata = meta;
+            streamAssistantMessageUpdate(assistantID, accumulated, isGemini ? metadata : undefined);
+          }
         }
-        await finalizeAssistantMessage(assistantID, id, accumulated, isGemini ? metadata : undefined);
+        await finalizeAssistantMessage(assistantID, id, accumulated, isGemini ? { ...metadata, files: generatedFiles } : undefined);
       } catch (error: any) {
         console.error("Error sending prompt:", error);
-        if (error instanceof HttpError) {
+        if (typeof error?.message === "string" && error.message.includes("Imagen API is only accessible to billed users")) {
+          toast.error(error.message);
+          if (isNewConversation) {
+            useSidebarConversation.getState().removeConversation(id);
+            useStore.getState().removeConversation();
+          }
+        } else if (
+          (typeof error?.message === "string" && error.message.includes("Gemini error: 429"))
+        ) {
+          toast.error("You have hit the rate limit. Please try again later.");
+          useSidebarConversation.getState().removeConversation(id);
+          useStore.getState().removeConversation();
+        } else if (error instanceof HttpError) {
           if (error.status === 401) {
             toast.error(`Please provide a valid API key for this provider.`);
+            if (isNewConversation) {
+              useSidebarConversation.getState().removeConversation(id);
+              useStore.getState().removeConversation();
+            }
           } else if (error.status === 429) {
             toast.error("You have hit the rate limit. Please try again later.");
-          }
-          if (isNewConversation && (error.status === 401 || error.status === 429)) {
             useSidebarConversation.getState().removeConversation(id);
             useStore.getState().removeConversation();
           }

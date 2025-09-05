@@ -1,8 +1,14 @@
+class HttpError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
 import { ChatProvider, FormattedMessage, StreamRequest } from "./types";
 
 export class GeminiProvider implements ChatProvider {
   formatMessages(messages: any[]): FormattedMessage[] {
-    // Gemini expects a different format, but for now just pass through
     return messages.map((m: any) => ({ role: m.role, content: m.content }));
   }
 
@@ -25,7 +31,18 @@ export class GeminiProvider implements ChatProvider {
       headers,
       body,
     });
-    if (!response.ok) throw new Error(`Gemini error: ${response.status}`);
+      if (!response.ok) {
+        let errorMsg = `Gemini error: ${response.status}`;
+        if (response.status === 400) {
+          try {
+            const errJson = await response.json();
+            if (errJson?.error?.message) {
+              errorMsg = errJson.error.message;
+            }
+          } catch {}
+        }
+        throw new HttpError(errorMsg, response.status);
+      }
     if (!response.body) throw new Error("Gemini response missing body stream");
     return response.body.getReader();
   }
@@ -35,12 +52,23 @@ export class GeminiProvider implements ChatProvider {
     const lines = chunk.split("\n").filter((line) => line.startsWith("data: "));
     let token = "";
     let metadata: any = {};
+    let images: any[] = [];
     for (const line of lines) {
       const jsonStr = line.replace("data: ", "").trim();
       if (jsonStr === "[DONE]") break;
       try {
         const parsed = JSON.parse(jsonStr);
-        token += parsed?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        const parts = parsed?.candidates?.[0]?.content?.parts || [];
+        for (const part of parts) {
+          if (part.text) {
+            token += part.text;
+          } else if (part.inlineData) {
+            images.push({
+              mimeType: part.inlineData.mime_type || "image/png",
+              data: part.inlineData.data,
+            });
+          }
+        }
         metadata = {
           groundingChunks: parsed?.candidates?.[0]?.groundingMetadata?.groundingChunks,
           groundingSupports: parsed?.candidates?.[0]?.groundingMetadata?.groundingSupports,
@@ -50,6 +78,9 @@ export class GeminiProvider implements ChatProvider {
           responseId: parsed?.responseId,
         };
       } catch {}
+    }
+    if (images.length > 0) {
+      metadata.images = images;
     }
     return { token, metadata };
   }

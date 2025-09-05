@@ -2,7 +2,6 @@ import { ChatProvider, FormattedMessage, StreamRequest } from "./types";
 
 export class OpenRouterProvider implements ChatProvider {
   formatMessages(messages: any[], options?: { supportsImages?: boolean }): FormattedMessage[] {
-    // ...existing OpenRouter formatting logic...
     return messages.map((m: any) => {
       if (m.role === "user" && (m.files?.length || 0) > 0) {
         const parts: any[] = [];
