@@ -35,11 +35,12 @@ export async function storeUserMessage(conversationId: string, prompt: string, a
   return userMessage;
 }
 
-export function streamAssistantMessageUpdate(assistantId: string, content: string, metadata?: any) {
-  useStore.getState().updateMessage(assistantId, metadata ? { content, ...metadata } : content);
+export function streamAssistantMessageUpdate(assistantId: string, content: string, metadata?: any, thoughts?: string) {
+  const updateData = metadata ? { content, thoughts, ...metadata } : { content, thoughts };
+  useStore.getState().updateMessage(assistantId, updateData);
 }
 
-export async function finalizeAssistantMessage(assistantId: string, conversationId: string, content: string, metadata?: any) {
+export async function finalizeAssistantMessage(assistantId: string, conversationId: string, content: string, metadata?: any, thoughts?: string) {
   await createMessage(
     assistantId,
     conversationId,
@@ -51,6 +52,7 @@ export async function finalizeAssistantMessage(assistantId: string, conversation
     metadata ? JSON.stringify(metadata.webSearchQueries ?? null) : undefined,
     metadata ? JSON.stringify(metadata.usageMetadata ?? null) : undefined,
     metadata ? metadata.modelVersion ?? null : undefined,
-    metadata ? metadata.responseId ?? null : undefined
+    metadata ? metadata.responseId ?? null : undefined,
+    thoughts || null
   );
 }

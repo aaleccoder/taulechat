@@ -51,6 +51,12 @@ export class OpenRouterProvider implements ChatProvider {
         model: request.modelId,
         messages: request.messages,
         stream: true,
+        reasoning: { 
+          enabled: true 
+        },
+        usage: {
+          include: true
+        }
       }),
     });
   if (!response.ok) {
@@ -81,15 +87,46 @@ export class OpenRouterProvider implements ChatProvider {
     const chunk = decoder.decode(value, { stream: true });
     const lines = chunk.split("\n").filter((line) => line.startsWith("data: "));
     let token = "";
+    let thoughts = "";
     let images: any[] = [];
+    let usageMetadata: any = null;
+    
     for (const line of lines) {
       const jsonStr = line.replace("data: ", "");
       if (jsonStr === "[DONE]") break;
       try {
         const parsed = JSON.parse(jsonStr);
-        // Text
         token += parsed.choices[0]?.delta?.content || "";
-        // Images (streaming delta)
+        
+        const reasoningDetails = parsed.choices[0]?.delta?.reasoning_details || [];
+        for (const reasoning of reasoningDetails) {
+          if (reasoning.type === "reasoning.text" && reasoning.text) {
+            thoughts += reasoning.text;
+          }
+        }
+
+
+        console.log(parsed);
+        
+        if (parsed.usage) {
+          usageMetadata = {
+            promptTokenCount: parsed.usage.prompt_tokens || 0,
+            completionTokenCount: parsed.usage.completion_tokens || 0,
+            totalTokenCount: parsed.usage.total_tokens || 0,
+            reasoningTokenCount: parsed.usage.completion_tokens_details?.reasoning_tokens || 0,
+            imageTokenCount: parsed.usage.completion_tokens_details?.image_tokens || 0,
+            cachedTokenCount: parsed.usage.prompt_tokens_details?.cached_tokens || 0,
+            audioTokenCount: parsed.usage.prompt_tokens_details?.audio_tokens || 0,
+            cost: parsed.usage.cost || 0,
+            upstreamCost: parsed.usage.cost_details?.upstream_inference_cost || 0,
+            upstreamPromptCost: parsed.usage.cost_details?.upstream_inference_prompt_cost || 0,
+            upstreamCompletionsCost: parsed.usage.cost_details?.upstream_inference_completions_cost || 0,
+            isByok: parsed.usage.is_byok || false,
+          };
+        }
+
+        console.log(usageMetadata);
+        
         const delta = parsed.choices[0]?.delta;
         if (delta?.images && Array.isArray(delta.images)) {
           for (const img of delta.images) {
@@ -108,6 +145,9 @@ export class OpenRouterProvider implements ChatProvider {
     if (images.length > 0) {
       metadata.images = images;
     }
-    return { token, metadata };
+    if (usageMetadata) {
+      metadata.usageMetadata = usageMetadata;
+    }
+    return { token, metadata, thoughts };
   }
 }

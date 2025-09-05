@@ -256,7 +256,7 @@ body {
 }
 
 .input-container {
-  @apply flex min-h-12 flex-1 items-end gap-2 rounded-full border bg-card px-2 py-2 shadow-md transition-all duration-150 focus-within:shadow-lg focus-within:ring-2 focus-within:ring-ring/50 focus-within:rounded-none;
+  @apply flex min-h-12 flex-1 items-end gap-2 rounded-full border bg-card px-2 py-2 shadow-md transition-all duration-150 focus-within:shadow-lg focus-within:ring-2 focus-within:ring-ring/50;
 }
 
 .attach-btn {
@@ -412,10 +412,9 @@ body {
 }
 
 .search-chat-input {
-  @apply h-12 focus:rounded-none w-full rounded-full border bg-card pl-10 pr-10 py-2 text-sm shadow-sm focus:ring-2 focus:ring-ring/50 transition-all duration-150 placeholder:text-muted-foreground/70;
+  @apply h-12 w-full rounded-full border bg-card pl-10 pr-10 py-2 text-sm shadow-sm focus:ring-2 focus:ring-ring/50 transition-all duration-150 placeholder:text-muted-foreground/70;
 }
 
-/* Reusable Tailwind classes for Home component */
 
 .home-container {
   @apply container flex flex-col items-center justify-center min-h-screen px-4 py-8 gap-6;

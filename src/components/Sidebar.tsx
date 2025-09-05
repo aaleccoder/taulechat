@@ -218,6 +218,7 @@ export default function AppSidebar() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="search-chat-input pl-9 pr-9"
                   aria-label="Search conversations"
+                  autoFocus={false}
                 />
                 {searchQuery && (
                   <Button
@@ -290,7 +291,7 @@ export default function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Button
-                onClick={() => { navigate("/settings") }}
+                onClick={() => { setOpenMobile(false); navigate("/settings") }}
                 variant="outline"
                 className="settings-btn hover:text-white hover:bg-accent/80"
                 aria-label="Open settings"

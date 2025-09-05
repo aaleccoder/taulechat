@@ -114,7 +114,6 @@ export function useChatService() {
       let isNewConversation = false;
       try {
         useLoading.getState().setLoading(true);
-        let accumulated = "";
         const model = await getModelById(model_id);
         const supportsImages = !!model?.architecture?.input_modalities?.includes("image");
         const isGemini = model?.provider === "Gemini";
@@ -162,6 +161,8 @@ export function useChatService() {
         // ...existing code...
         let reader;
         let generatedFiles: any[] = [];
+        let accumulated = "";
+        let accumulatedThoughts = "";
         if (isGemini) {
           reader = await provider.streamResponse({
             modelId: model_id,
@@ -182,7 +183,11 @@ export function useChatService() {
         stream_loop: while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          const { token, metadata: meta } = provider.parseStreamChunk(value, decoder);
+          const { token, metadata: meta, thoughts } = provider.parseStreamChunk(value, decoder);
+          // Handle thoughts accumulation
+          if (thoughts) {
+            accumulatedThoughts += thoughts;
+          }
           // ...existing code...
           if (meta && meta.images && Array.isArray(meta.images)) {
             generatedFiles = meta.images.map((img: any, idx: number) => ({
@@ -195,15 +200,16 @@ export function useChatService() {
               created_at: new Date().toISOString(),
             }));
             setText("");
-            streamAssistantMessageUpdate(assistantID, "", { files: generatedFiles });
+            streamAssistantMessageUpdate(assistantID, "", { files: generatedFiles }, accumulatedThoughts);
           } else {
             accumulated += token;
             setText(accumulated);
-            if (isGemini && meta) metadata = meta;
-            streamAssistantMessageUpdate(assistantID, accumulated, isGemini ? metadata : undefined);
+            // Update metadata for both providers
+            if (meta) metadata = { ...metadata, ...meta };
+            streamAssistantMessageUpdate(assistantID, accumulated, metadata, accumulatedThoughts);
           }
         }
-        await finalizeAssistantMessage(assistantID, id, accumulated, isGemini ? { ...metadata, files: generatedFiles } : undefined);
+        await finalizeAssistantMessage(assistantID, id, accumulated, { ...metadata, files: generatedFiles }, accumulatedThoughts);
       } catch (error: any) {
         console.error("Error sending prompt:", error);
         const errorMessage = getErrorMessage(error);

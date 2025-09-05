@@ -15,5 +15,5 @@ export interface StreamRequest {
 export interface ChatProvider {
   formatMessages(messages: ChatMessage[], options?: { supportsImages?: boolean }): FormattedMessage[];
   streamResponse(request: StreamRequest): Promise<ReadableStreamDefaultReader<Uint8Array>>;
-  parseStreamChunk(value: Uint8Array, decoder: TextDecoder): { token: string; metadata?: any };
+  parseStreamChunk(value: Uint8Array, decoder: TextDecoder): { token: string; metadata?: any; thoughts?: string };
 }

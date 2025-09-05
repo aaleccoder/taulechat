@@ -55,8 +55,8 @@ export default function ChatInput({ id }: { id: string }) {
     }
   }, [open]);
 
-  const sendMessage = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
+  const sendMessage = async (e?: React.MouseEvent<HTMLButtonElement>) => {
+    if (e) e.preventDefault();
     if (!userInput.trim()) return;
     let chatId = id;
     if (!chatId) {
@@ -70,6 +70,22 @@ export default function ChatInput({ id }: { id: string }) {
     setAttachments([]);
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter') {
+      if (e.ctrlKey) {
+        e.preventDefault();
+        sendMessage();
+      } else {
+        e.preventDefault();
+        setUserInput(prev => prev + ' ');
+        if (textareaRef.current) {
+          textareaRef.current.style.height = "auto";
+          textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 192) + "px";
+        }
+      }
     }
   };
 
@@ -144,6 +160,7 @@ export default function ChatInput({ id }: { id: string }) {
                   e.target.style.height = "auto";
                   e.target.style.height = Math.min(e.target.scrollHeight, 192) + "px";
                 }}
+                onKeyDown={handleKeyDown}
                 value={userInput}
               />
             </div>

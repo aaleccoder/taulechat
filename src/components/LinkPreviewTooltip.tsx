@@ -12,10 +12,6 @@ interface LinkPreviewTooltipProps {
     title?: string;
 }
 
-const openLink = (url: string) => {
-    openUrl(url);
-};
-
 export default function LinkPreviewTooltip({ href, children }: LinkPreviewTooltipProps) {
     const [meta, setMeta] = useState<any>(null);
     const [loading, setLoading] = useState(false);
@@ -49,28 +45,45 @@ export default function LinkPreviewTooltip({ href, children }: LinkPreviewToolti
     return (
         <Tooltip onOpenChange={handleTooltipOpenChange}>
             <TooltipTrigger asChild>
-                <a
-                    href={href}
-                    onClick={(e) => { e.preventDefault(); openLink(href); }}
-                    className="underline text-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                <span
+                    className="underline text-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer touch-manipulation select-none motion-safe:transition-colors motion-safe:duration-150 active:bg-accent/20 rounded px-1 py-0.5 min-h-[40px] inline-flex items-center"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Preview link: ${href}`}
                 >
                     {children}
-                </a>
+                </span>
             </TooltipTrigger>
             <TooltipContent className={`${loading ? "bg-card text-white" : "bg-transparent"}`}>
                 {loading ? (
                     <LoadingUI />
                 ) : error || !meta ? (
-                    <div className="bg-card text-white">
-                        <p>{href}</p>
+                    <div className="bg-card text-white p-3 rounded-lg shadow-md">
+                        <p
+                            className="cursor-pointer underline hover:text-accent-foreground touch-manipulation min-h-[44px] flex items-center justify-center px-3 py-2 rounded motion-safe:transition-all motion-safe:duration-150 active:scale-95 active:bg-accent/20"
+                            onClick={() => openUrl(href)}
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`Open link: ${href}`}
+                        >
+                            {href}
+                        </p>
                     </div>
                 ) : (
                     <Card>
-                        <CardContent className="flex flex-col gap-1 p-3 max-w-[40vh]">
-                            {meta.title && <div className="font-semibold truncate">{meta.title}</div>}
-                            {meta.description && <div className="text-xs text-muted-foreground truncate">{meta.description}</div>}
-                            <div className="text-xs text-accent break-all">{meta.canonical || href}</div>
-                            {meta.ogImage && <img src={meta.ogImage} alt="Preview" className="mt-1 max-w-32 max-h-32 w-auto h-auto object-cover rounded" />}
+                        <CardContent className="flex flex-col gap-2 p-4 max-w-[90vw] sm:max-w-[40vh]">
+                            {meta.title && <div className="font-semibold truncate text-sm">{meta.title}</div>}
+                            {meta.description && <div className="text-xs text-muted-foreground line-clamp-2">{meta.description}</div>}
+                            <div
+                                className="text-xs text-accent break-all cursor-pointer hover:text-accent-foreground underline touch-manipulation min-h-[44px] flex items-center px-3 py-2 -mx-3 rounded motion-safe:transition-all motion-safe:duration-150 active:scale-95 active:bg-accent/20"
+                                onClick={() => openUrl(meta.canonical || href)}
+                                role="button"
+                                tabIndex={0}
+                                aria-label={`Open link: ${meta.canonical || href}`}
+                            >
+                                {meta.canonical || href}
+                            </div>
+                            {meta.ogImage && <img src={meta.ogImage} alt="Link preview image" className="mt-2 max-w-full max-h-48 w-auto h-auto object-cover rounded shadow-sm" />}
                         </CardContent>
                     </Card>
                 )}

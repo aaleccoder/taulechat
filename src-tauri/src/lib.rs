@@ -64,6 +64,12 @@ pub fn run() {
         );
         ",
         kind: MigrationKind::Up,
+    },
+    Migration {
+        version: 3,
+        description: "add thoughts to messages table",
+        sql: "ALTER TABLE messages ADD COLUMN thoughts TEXT;",
+        kind: MigrationKind::Up,
     }
     ];
     tauri::Builder::default()

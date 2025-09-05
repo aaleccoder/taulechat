@@ -16,6 +16,7 @@ export type ChatMessage = {
     tokens_used?: number;
     created_at: string;
     files?: MessageFile[];
+    thoughts?: string;
     groundingChunks?: any[];
     groundingSupports?: any[];
     webSearchQueries?: string[];
@@ -175,6 +176,7 @@ export const useStore = create<ChatConversationsState>((set, get) => ({
                         return {
                             ...m,
                             files: Array.isArray(files) ? files : [],
+                            thoughts: dbRow.thoughts || undefined,
                             groundingChunks: dbRow.grounding_chunks ? JSON.parse(dbRow.grounding_chunks) : undefined,
                             groundingSupports: dbRow.grounding_supports ? JSON.parse(dbRow.grounding_supports) : undefined,
                             webSearchQueries: dbRow.web_search_queries ? JSON.parse(dbRow.web_search_queries) : undefined,

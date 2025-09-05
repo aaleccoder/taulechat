@@ -26,6 +26,11 @@ export class GeminiProvider implements ChatProvider {
         return { role: m.role === "assistant" ? "model" : "user", parts };
       }),
       tools: [{"google_search": {}, "url_context": {}, "code_execution": {}} ],
+      generationConfig: { 
+        thinkingConfig: { 
+          includeThoughts: true 
+        } 
+      },
     });
     const response = await fetch(url, {
       method: "POST",
@@ -60,6 +65,8 @@ export class GeminiProvider implements ChatProvider {
     const chunk = decoder.decode(value, { stream: true });
     const lines = chunk.split("\n").filter((line) => line.startsWith("data: "));
     let token = "";
+    let thoughts = "";
+    console.log(chunk);
     let metadata: any = {};
     let images: any[] = [];
     for (const line of lines) {
@@ -70,7 +77,11 @@ export class GeminiProvider implements ChatProvider {
         const parts = parsed?.candidates?.[0]?.content?.parts || [];
         for (const part of parts) {
           if (part.text) {
-            token += part.text;
+            if (part.thought === true) {
+              thoughts += part.text;
+            } else {
+              token += part.text;
+            }
           } else if (part.inlineData) {
             images.push({
               mimeType: part.inlineData.mime_type || "image/png",
@@ -93,6 +104,6 @@ export class GeminiProvider implements ChatProvider {
     if (images.length > 0) {
       metadata.images = images;
     }
-    return { token, metadata };
+    return { token, metadata, thoughts };
   }
 }
