@@ -23,21 +23,24 @@ bun tauri build
 
 *   **LaTeX Rendering:** Write and render LaTeX expressions.
 *   **Syntax Highlighting:** Code blocks are highlighted for better readability.
-*   **Image Uploading to OpenRouter:** Upload images to use with multimodal models on OpenRouter.
+*   **Image Uploading:** Upload images to use with multimodal models on OpenRouter and Gemini.
 *   **Model Picker:** Switch between different models from the supported providers.
+*   **Image Generation:** Add support for image generation models.
+*   **Link Preview:** Tooltips for link previews.
+*   **Multi-select:** Functionality in the sidebar.
+*   **Usage Metadata:** Display of usage metadata.
+*   **Search:** Search functionality for conversations.
+*   **Message Stats:** View statistics about your messages from Gemini.
+*   **Grounding Search:** Grounding search with citations and link previews via Gemini.
+*   **Android Support:** Full-fledged support for Android devices, on par with desktop.
 *   **Providers:**
     *   Gemini
     *   OpenRouter
 
 ## Roadmap
 
-*   **Gemini File Uploading:** Enable file uploads for Gemini models.
-*   **Image Generation:** Add support for image generation models.
-*   **Search:** Implement a search functionality for conversations.
 *   **UI/UX Enhancements:** Continuously improve the user interface and experience.
-*   **Android Support:** Full-fledged support for Android devices.
 *   **Message Branching:** Create and manage different conversation branches.
-*   **Message Stats:** View statistics about your messages.
 *   **Local LLM Support:** Support for running local LLMs (pending hardware availability for testing that i do not have right now).
 *   **Theme Support:** Customize the look and feel of the app with themes.
 
