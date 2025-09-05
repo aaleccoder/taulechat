@@ -9,7 +9,14 @@ body {
   overflow: hidden;
   padding: 0;
   margin: 0;
+  font-family: "Sora", sans-serif;
 }
+
+@font-face {
+  font-family: "Sora", sans-serif;
+  src: url("./assets/fonts/Sora-VariableFont_wght.ttf");
+}
+
 
 :root {
   --safe-area-bottom: max(env(safe-area-inset-bottom), 0.5rem);
@@ -24,7 +31,7 @@ body {
   --secondary: #ccd0da;
   --secondary-foreground: #4c4f69;
   --muted: #dce0e8;
-  --muted-foreground: #6c6f85;
+  --muted-foreground: #d4d4d4;
   --accent: #04a5e5;
   --accent-foreground: #ffffff;
   --destructive: #d20f39;
@@ -433,7 +440,7 @@ body {
 /* Reusable Tailwind classes for App Header */
 
 .app-header {
-  @apply flex items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 py-3;
+  @apply flex items-center justify-between bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 py-3;
 }
 
 .app-logo {

@@ -271,7 +271,25 @@ function SidebarTrigger({
       }}
       {...props}
     >
-      <PanelLeftIcon />
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        strokeWidth={1.5}
+        stroke="currentColor"
+        className="size-6"
+      >
+        {/* outer rounded panel */}
+        <rect x={3} y={4} width={18} height={16} rx={2} />
+
+        {/* left sidebar divider */}
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 4v16" />
+
+        {/* content lines on the right */}
+        {/* <path strokeLinecap="round" strokeLinejoin="round" d="M12 8h6" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 12h6" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 16h6" /> */}
+      </svg>
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   )

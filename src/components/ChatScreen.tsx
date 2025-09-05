@@ -7,7 +7,6 @@ import { useStore, useUIVisibility } from "@/utils/state";
 export default function ChatScreen() {
   const params = useParams<{ id: string }>();
   const id = params.id;
-  const { isChatInputVisible, isChatExpanded } = useUIVisibility();
 
   useEffect(() => {
     let mounted = true;
@@ -38,16 +37,14 @@ export default function ChatScreen() {
   }, [id]);
 
   return (
-    <div className={`flex flex-col bg-background pb-4 transition-all duration-300 ${isChatExpanded ? 'h-screen' : 'h-[92vh]'
-      } !overflow-hidden`}>
-      <div className={`w-full flex flex-col h-full transition-all duration-300 ${isChatExpanded ? 'max-w-none mx-0' : 'md:max-w-[60vw] mx-auto'
-        }`}>
+    <div className="flex flex-col bg-background pb-4 transition-all duration-300 h-[90vh] !overflow-hidden">
+      <div className="w-full flex flex-col h-full transition-all duration-300 md:max-w-[60vw] mx-auto">
         <div className="flex-1 overflow-y-auto" id="chat-messages-scroll-container">
           <ChatMessages />
         </div>
-        <div className={`w-full md:max-w-[50vw] mx-auto transition-all duration-300 ${isChatInputVisible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
-          }`}>
-          <ChatInput id={id ? id : ""} />
+        <div className="w-full md:max-w-[50vw] mx-auto transition-all duration-300 translate-y-0 opacity-100">
+          {/* @ts-ignore */}
+          <ChatInput id={id} />
         </div>
       </div>
     </div>
