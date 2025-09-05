@@ -5,6 +5,7 @@ import { OpenRouterModel, GeminiModel, ModelParameters as ModelParametersType, u
 import { getModelParameters, saveModelParameters, removeModelParameters } from "@/utils/store";
 import { useIsMobile } from "@/hooks/use-mobile";
 import OpenRouterParametersForm from "./forms/OpenRouterParametersForm";
+import GeminiParametersForm from "./forms/GeminiParametersForm";
 
 interface ModelParametersProps {
     open: boolean;
@@ -83,6 +84,7 @@ export default function ModelParameters({
     };
 
     const isOpenRouterModel = selectedModel?.provider === "OpenRouter";
+    const isGeminiModel = selectedModel?.provider === "Gemini";
 
     const content = (
         <div className="overflow-y-auto">
@@ -93,7 +95,14 @@ export default function ModelParameters({
                     onSave={handleSave}
                     onReset={handleReset}
                 />
-            ) : selectedModel && !isOpenRouterModel ? (
+            ) : selectedModel?.id && isGeminiModel ? (
+                <GeminiParametersForm
+                    model={selectedModel as GeminiModel}
+                    initialParameters={parameters}
+                    onSave={handleSave}
+                    onReset={handleReset}
+                />
+            ) : selectedModel ? (
                 <div className="p-4 text-center">
                     <p className="text-muted-foreground">
                         Parameter configuration is not yet available for {selectedModel.provider} models.

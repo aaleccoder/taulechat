@@ -13,6 +13,10 @@ export interface ModelParameters {
   presence_penalty?: number;
   repetition_penalty?: number;
   
+  // Gemini-specific parameters
+  candidate_count?: number;
+  stop_sequences?: string[];
+  
   // Advanced parameters
   seed?: number;
   min_p?: number;

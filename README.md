@@ -25,7 +25,6 @@ bun tauri build
 *   **Syntax Highlighting:** Code blocks are highlighted for better readability.
 *   **Image Uploading:** Upload images to use with multimodal models on OpenRouter and Gemini.
 *   **Model Picker:** Switch between different models from the supported providers.
-*   **Image Generation:** Add support for image generation models.
 *   **Link Preview:** Tooltips for link previews.
 *   **Multi-select:** Functionality in the sidebar.
 *   **Usage Metadata:** Display of usage metadata.
@@ -38,7 +37,7 @@ bun tauri build
     *   OpenRouter
 
 ## Roadmap
-
+*   **Image Generation:** Add support for image generation models(you can pick a model but the image wont get rendered back).
 *   **UI/UX Enhancements:** Continuously improve the user interface and experience.
 *   **Message Branching:** Create and manage different conversation branches.
 *   **Local LLM Support:** Support for running local LLMs (pending hardware availability for testing that i do not have right now).

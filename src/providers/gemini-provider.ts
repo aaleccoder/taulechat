@@ -17,6 +17,36 @@ export class GeminiProvider implements ChatProvider {
     };
     if (request.apiKey) headers["x-goog-api-key"] = request.apiKey;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${request.modelId.split("/")[1]}:streamGenerateContent?alt=sse`;
+    
+    // Build generation config with parameters
+    const generationConfig: any = {
+      thinkingConfig: { 
+        includeThoughts: true 
+      }
+    };
+
+    // Apply parameters if provided
+    if (request.parameters) {
+      const params = request.parameters;
+      
+      // Basic parameters
+      if (params.temperature !== undefined) generationConfig.temperature = params.temperature;
+      if (params.max_tokens !== undefined) generationConfig.maxOutputTokens = params.max_tokens;
+      if (params.top_p !== undefined) generationConfig.topP = params.top_p;
+      if (params.top_k !== undefined) generationConfig.topK = params.top_k;
+      
+      // Penalty parameters
+      if (params.frequency_penalty !== undefined) generationConfig.frequencyPenalty = params.frequency_penalty;
+      if (params.presence_penalty !== undefined) generationConfig.presencePenalty = params.presence_penalty;
+      
+      // Gemini-specific parameters
+      if (params.candidate_count !== undefined) generationConfig.candidateCount = params.candidate_count;
+      if (params.seed !== undefined) generationConfig.seed = params.seed;
+      if (params.stop_sequences !== undefined && params.stop_sequences.length > 0) {
+        generationConfig.stopSequences = params.stop_sequences;
+      }
+    }
+
     const body = JSON.stringify({
       contents: request.messages.map((m) => {
         const parts = [{ text: m.content }];
@@ -26,11 +56,7 @@ export class GeminiProvider implements ChatProvider {
         return { role: m.role === "assistant" ? "model" : "user", parts };
       }),
       tools: [{"google_search": {}, "url_context": {}, "code_execution": {}} ],
-      generationConfig: { 
-        thinkingConfig: { 
-          includeThoughts: true 
-        } 
-      },
+      generationConfig,
     });
     const response = await fetch(url, {
       method: "POST",
