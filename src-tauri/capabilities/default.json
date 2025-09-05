@@ -20,6 +20,9 @@
         },
         {
           "url": "https://generativelanguage.googleapis.com/v1beta/*"
+        },
+        {
+          "url": "https://vertexaisearch.cloud.google.com/**"
         }
       ],
       "deny": [
@@ -28,10 +31,12 @@
         }
       ]
     },
+    "opener:allow-default-urls",
     "sql:default",
     "sql:allow-select",
     "sql:allow-execute",
     "store:default",
-    "dialog:default"
+    "dialog:default",
+    "shell:default"
   ]
 }
