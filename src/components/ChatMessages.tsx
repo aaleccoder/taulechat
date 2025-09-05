@@ -1,4 +1,4 @@
-import { useLoading, useStore, useUIVisibility } from "@/utils/state";
+import { useLoading, useStore, useUIVisibility, ChatMessage } from "@/utils/state";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -9,71 +9,340 @@ import "katex/dist/katex.min.css";
 import { Button } from "./ui/button";
 import { Clipboard } from "lucide-react";
 import { toast } from "sonner";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, memo, useCallback } from "react";
 import {
   TooltipProvider,
 } from "@/components/ui/tooltip";
-import { openUrl } from '@tauri-apps/plugin-opener';
 import rehypeRaw from "rehype-raw";
 import LoadingUI from "./loading";
 import LinkPreviewTooltip from "./LinkPreviewTooltip";
 
+const MessageItem = memo(({ message, isChatExpanded, handleCopyToClipboard, loading }: { message: ChatMessage, isChatExpanded: boolean, handleCopyToClipboard: (content: string) => void, loading: boolean }) => {
+  let renderedContent = message.content;
+  if (message.role === "assistant" && message.groundingSupports && Array.isArray(message.groundingSupports) && message.groundingChunks) {
+    renderedContent = renderedContent.replace(/\s*\[(\d+)\]\([^)]*\s*"[^"]*"\)\s*/g, '');
+
+    const supportsSorted = [...message.groundingSupports].sort((a, b) => b.segment.endIndex - a.segment.endIndex);
+
+    supportsSorted.forEach((support) => {
+      const indices = (support.groundingChunkIndices as number[]).map((i: number) => i + 1); // 1-based
+      if (indices.length > 0) {
+        const uniqueIndices = [...new Set(indices)];
+
+        const chunk = uniqueIndices.map(index => {
+          return message.groundingChunks![index - 1];
+        }).filter(chunk => chunk?.web?.uri)[0];
+
+        if (chunk?.web?.uri) {
+          const beforeText = renderedContent.slice(0, support.segment.endIndex);
+          const afterText = renderedContent.slice(support.segment.endIndex);
+
+          const existingLink = afterText.match(/^\s*(\[.*?\]\(.*?\)|https?:\/\/[^\s]+)/);
+          if (!existingLink) {
+            const displayText = chunk.web.title || chunk.web.uri;
+            const markdownLink = `[${displayText}](${chunk.web.uri})`;
+            renderedContent = beforeText + ` ${markdownLink}` + afterText;
+          }
+        }
+      }
+    });
+  }
+  if (message.role === "user") {
+    return (
+      <div
+        key={message.id}
+        className="flex justify-end items-end flex-col space-y-2 w-full max-w-full"
+      >
+        {message.files && message.files.length > 0 && (
+          <div className="flex flex-row gap-2 flex-wrap ml-auto max-w-full">
+            {message.files.slice(0, 2).map((f) => {
+              const isImage = f.mime_type.startsWith("image/");
+              let preview: string | undefined;
+              if (isImage) {
+                try {
+                  let byteCharacters = f.data;
+                  if (typeof f.data === 'string') {
+                    byteCharacters = JSON.parse(f.data);
+                  }
+                  // @ts-ignore
+                  const blob = new Blob([new Uint8Array(byteCharacters)], { type: f.mime_type });
+                  preview = URL.createObjectURL(blob);
+                } catch (e) {
+                  console.error("Error creating image preview:", e)
+                }
+              }
+              return (
+                <div key={f.id} className="border rounded-lg p-2 bg-card w-fit max-w-[50%] min-w-0">
+                  {isImage && preview ? (
+                    <img src={preview} className="max-w-[200px] max-h-[200px] object-cover rounded" />
+                  ) : (
+                    <div className="text-xs flex items-center gap-2 min-w-0">
+                      <span className="px-2 py-1 bg-muted rounded truncate">{f.file_name}</span>
+                      <span className="opacity-60 flex-shrink-0">{Math.round(f.size / 1024)} KB</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <div
+          className={`message user ml-auto px-4 py-2 bg-card w-fit rounded-2xl break-words transition-all duration-300 ${isChatExpanded ? 'max-w-[90%]' : 'max-w-[80%]'
+            } min-w-0`}
+        >
+          <Markdown
+            children={renderedContent}
+            remarkPlugins={[remarkGfm, remarkMath]}
+            rehypePlugins={[rehypeKatex, rehypeRaw]}
+            components={{
+
+              code(props) {
+                const { children, className, node, ...rest } = props;
+                const match = /language-(\w+)/.exec(className || "");
+                return match ? (
+                  <div className="relative w-full max-w-full">
+                    <div className="absolute right-2 top-2 z-10">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex gap-2 items-center"
+                        onClick={() =>
+                          handleCopyToClipboard(String(children))
+                        }
+                      >
+                        <Clipboard className="h-4 w-4" />
+                        Copy code
+                      </Button>
+                    </div>
+                    <div className="w-full max-w-full overflow-x-auto">
+                      {
+                        // @ts-ignore
+                        <SyntaxHighlighter
+                          {...rest}
+                          PreTag="div"
+                          children={String(children).replace(/\n$/, "")}
+                          language={match[1]}
+                          style={atomDark}
+                          customStyle={{
+                            margin: 0,
+                            maxWidth: '100%',
+                            overflowX: 'auto',
+                            fontSize: '14px',
+                            whiteSpace: 'pre'
+                          }}
+                          wrapLongLines={false}
+                        />
+                      }
+                    </div>
+                  </div>
+                ) : (
+                  <code {...rest} className={`${className} break-words`}>
+                    {children}
+                  </code>
+                );
+              },
+            }}
+          />
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="p-0 opacity-50 hover:opacity-100"
+          onClick={() => handleCopyToClipboard(renderedContent)}
+        >
+          <Clipboard />
+        </Button>
+      </div>
+    );
+  } else {
+    return (
+      <div
+        key={message.id}
+        className={`message assistant w-full min-w-0 transition-all duration-300 ${isChatExpanded ? 'max-w-full' : 'max-w-full'
+          }`}
+      >
+        {message.files && message.files.length > 0 && (
+          <div className="flex flex-row gap-2 flex-wrap max-w-full">
+            {message.files.slice(0, 2).map((f) => {
+              const isImage = f.mime_type.startsWith("image/");
+              let preview: string | undefined;
+              if (isImage) {
+                try {
+                  let byteCharacters = f.data;
+                  if (typeof f.data === 'string') {
+                    byteCharacters = JSON.parse(f.data);
+                  }
+                  // @ts-ignore
+                  const blob = new Blob([new Uint8Array(byteCharacters)], { type: f.mime_type });
+                  preview = URL.createObjectURL(blob);
+                } catch (e) {
+                  console.error("Error creating image preview:", e)
+                }
+              }
+              return (
+                <div key={f.id} className="border rounded-lg p-2 bg-card w-fit max-w-[50%] min-w-0">
+                  {isImage && preview ? (
+                    <img src={preview} className="max-w-[200px] max-h-[200px] object-cover rounded" />
+                  ) : (
+                    <div className="text-xs flex items-center gap-2 min-w-0">
+                      <span className="px-2 py-1 bg-muted rounded truncate">{f.file_name}</span>
+                      <span className="opacity-60 flex-shrink-0">{Math.round(f.size / 1024)} KB</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {loading && !message.content ? (
+          <LoadingUI />
+        ) : (
+          <Markdown
+            children={renderedContent}
+            remarkPlugins={[remarkGfm, remarkMath]}
+            rehypePlugins={[rehypeKatex, rehypeRaw]}
+            components={{
+              a: ({ href, children }) => {
+                if (!href) return null;
+
+                return (
+                  <LinkPreviewTooltip href={href} >
+                    <span className="cursor-pointer !no-underline bg-accent/20 px-2 rounded-full py-1 text-xs hover:bg-accent/10 transition">
+                      {children}
+                    </span>
+                  </LinkPreviewTooltip>
+                );
+              },
+              code(props) {
+                const { children, className, node, ...rest } = props;
+                const match = /language-(\w+)/.exec(className || "");
+                return match ? (
+                  <div className="relative">
+                    <div className="absolute right-2 top-2 z-10">
+                      <Button
+                        variant="outline"
+                        className="flex gap-2 items-center"
+                        onClick={() =>
+                          handleCopyToClipboard(String(children))
+                        }
+                      >
+                        <Clipboard className="h-4 w-4" />
+                        Copy
+                      </Button>
+                    </div>
+                    {
+                      // @ts-ignore
+                      <SyntaxHighlighter
+                        {...rest}
+                        PreTag="div"
+                        children={String(children).replace(/\n$/, "")}
+                        language={match[1]}
+                        style={atomDark}
+                      />
+                    }
+                  </div>
+                ) : (
+                  <code {...rest} className={className}>
+                    {children}
+                  </code>
+                );
+              },
+            }}
+          />
+        )}
+        {message.role === "assistant" && message.usageMetadata && (
+          <div
+            className="mt-2 mb-1 px-4 py-2 rounded-xl border bg-card/70 shadow-sm flex flex-col gap-1 text-xs text-muted-foreground"
+            style={{
+              fontFamily: 'var(--font-mono)',
+              maxWidth: 'fit-content',
+              minWidth: '180px',
+              borderColor: 'var(--border)',
+              background: 'var(--card)',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+            aria-label="Token usage details"
+            role="contentinfo"
+          >
+            <div className="font-semibold text-foreground mb-1">Token Usage</div>
+            <div className="flex flex-wrap gap-2">
+              <span className="rounded-full bg-muted px-2 py-1" title="Prompt tokens">
+                Prompt: <span className="font-mono">{message.usageMetadata.promptTokenCount}</span>
+              </span>
+              <span className="rounded-full bg-muted px-2 py-1" title="Candidates tokens">
+                Candidates: <span className="font-mono">{message.usageMetadata.candidatesTokenCount}</span>
+              </span>
+              <span className="rounded-full bg-muted px-2 py-1" title="Total tokens">
+                Total: <span className="font-mono">{message.usageMetadata.totalTokenCount}</span>
+              </span>
+              <span className="rounded-full bg-muted px-2 py-1" title="Cached content tokens">
+                Cached: <span className="font-mono">{message.usageMetadata.cachedContentTokenCount}</span>
+              </span>
+            </div>
+            <div className="mt-1">
+              <span className="font-semibold">Prompt Details:</span>
+              <ul className="list-disc ml-4">
+                {message.usageMetadata.promptTokensDetails?.map((detail: any, i: number) => (
+                  <li key={i}>
+                    <span className="font-mono">{detail.modality}</span>: <span className="font-mono">{detail.tokenCount}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+        {message.role === "assistant" && message.groundingChunks && message.groundingChunks.length > 0 && (
+          <div
+            className="mt-2 mb-1 px-4 py-2 rounded-xl border bg-card/70 shadow-sm flex flex-col gap-1 text-xs text-muted-foreground"
+            style={{
+              fontFamily: 'var(--font-mono)',
+              maxWidth: 'fit-content',
+              minWidth: '180px',
+              borderColor: 'var(--border)',
+              background: 'var(--card)',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+            aria-label="Sources"
+            role="contentinfo"
+          >
+            <div className="font-semibold text-foreground mb-1">Sources</div>
+            <ol className="list-decimal ml-4">
+              {message.groundingChunks.map((chunk: any, i: number) => (
+                <li key={i}>
+                  {chunk.web?.uri ? (
+                    <LinkPreviewTooltip href={chunk.web.uri}>
+                      {chunk.web.title || chunk.web.uri}
+                    </LinkPreviewTooltip>
+                  ) : (
+                    <span>{chunk.web?.uri}</span>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="p-0 opacity-50 hover:opacity-100"
+          onClick={() => handleCopyToClipboard(message.content)}
+        >
+          <Clipboard />
+        </Button>
+      </div>
+    );
+  }
+});
 
 export default function ChatMessages() {
   const messages = useStore((state) => state.conversation?.messages);
   const loading = useLoading((state) => state.loading);
-  const { setHeaderVisible, setChatInputVisible, setChatExpanded, isChatExpanded } = useUIVisibility();
-  const lastScrollTop = useRef(0);
-  const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
+  const { isChatExpanded } = useUIVisibility();
 
-  useEffect(() => {
-    const scrollContainer = document.getElementById('chat-messages-scroll-container');
-    if (!scrollContainer) return;
-
-    const handleScroll = () => {
-      const currentScrollTop = scrollContainer.scrollTop;
-      const scrollHeight = scrollContainer.scrollHeight;
-      const clientHeight = scrollContainer.clientHeight;
-      const isScrollingDown = currentScrollTop > lastScrollTop.current;
-      const isScrollingUp = currentScrollTop < lastScrollTop.current;
-      const isAtBottom = Math.abs(scrollHeight - clientHeight - currentScrollTop) < 5;
-
-      if (scrollTimeout.current) {
-        clearTimeout(scrollTimeout.current);
-      }
-
-      if (isAtBottom) {
-        setHeaderVisible(true);
-        setChatInputVisible(true);
-        setChatExpanded(false);
-      } else if (isScrollingDown && currentScrollTop > 50) {
-        setHeaderVisible(false);
-        setChatInputVisible(false);
-        setChatExpanded(true);
-      } else if (isScrollingUp || currentScrollTop <= 50) {
-        setHeaderVisible(true);
-        setChatInputVisible(true);
-        setChatExpanded(false);
-      }
-
-      scrollTimeout.current = setTimeout(() => {
-        setHeaderVisible(true);
-        setChatInputVisible(true);
-        setChatExpanded(false);
-      }, 2000); // Show again after 2 seconds of no scrolling
-
-      lastScrollTop.current = currentScrollTop;
-    };
-
-    scrollContainer.addEventListener("scroll", handleScroll, { passive: true });
-
-    return () => {
-      scrollContainer.removeEventListener("scroll", handleScroll);
-      if (scrollTimeout.current) {
-        clearTimeout(scrollTimeout.current);
-      }
-    };
-  }, [setHeaderVisible, setChatInputVisible, setChatExpanded]);
+  const handleCopyToClipboard = useCallback((content: string) => {
+    navigator.clipboard.writeText(content);
+    toast.success("Copied to clipboard!");
+  }, []);
 
   if (!messages || messages.length === 0) {
     return (
@@ -83,331 +352,20 @@ export default function ChatMessages() {
     );
   }
 
-  const handleCopyToClipboard = (content: string) => {
-    navigator.clipboard.writeText(content);
-    toast.success("Cpied to clipboard!");
-  };
-
-
-
   return (
     <TooltipProvider delayDuration={100}>
       <div className={`flex flex-col space-y-2 w-full max-w-full transition-all duration-300 px-4 py-16`}>
         {messages.map((message, index) => {
-          let renderedContent = message.content;
-          if (message.role === "assistant" && message.groundingSupports && Array.isArray(message.groundingSupports) && message.groundingChunks) {
-            renderedContent = renderedContent.replace(/\s*\[(\d+)\]\([^)]*\s*"[^"]*"\)\s*/g, '');
-
-            const supportsSorted = [...message.groundingSupports].sort((a, b) => b.segment.endIndex - a.segment.endIndex);
-
-            supportsSorted.forEach((support) => {
-              const indices = (support.groundingChunkIndices as number[]).map((i: number) => i + 1); // 1-based
-              if (indices.length > 0) {
-                const uniqueIndices = [...new Set(indices)];
-
-                const chunk = uniqueIndices.map(index => {
-                  return message.groundingChunks![index - 1];
-                }).filter(chunk => chunk?.web?.uri)[0];
-
-                if (chunk?.web?.uri) {
-                  const beforeText = renderedContent.slice(0, support.segment.endIndex);
-                  const afterText = renderedContent.slice(support.segment.endIndex);
-
-                  const existingLink = afterText.match(/^\s*(\[.*?\]\(.*?\)|https?:\/\/[^\s]+)/);
-                  if (!existingLink) {
-                    const displayText = chunk.web.title || chunk.web.uri;
-                    const markdownLink = `[${displayText}](${chunk.web.uri})`;
-                    renderedContent = beforeText + ` ${markdownLink}` + afterText;
-                  }
-                }
-              }
-            });
-          }
-          if (message.role === "user") {
-            return (
-              <div
-                key={message.id || `user-${index}`}
-                className="flex justify-end items-end flex-col space-y-2 w-full max-w-full"
-              >
-                {message.files && message.files.length > 0 && (
-                  <div className="flex flex-row gap-2 flex-wrap ml-auto max-w-full">
-                    {message.files.slice(0, 2).map((f) => {
-                      const isImage = f.mime_type.startsWith("image/");
-                      let preview: string | undefined;
-                      if (isImage) {
-                        try {
-                          let byteCharacters = f.data;
-                          if (typeof f.data === 'string') {
-                            byteCharacters = JSON.parse(f.data);
-                          }
-                          // @ts-ignore
-                          const blob = new Blob([new Uint8Array(byteCharacters)], { type: f.mime_type });
-                          preview = URL.createObjectURL(blob);
-                        } catch (e) {
-                          console.error("Error creating image preview:", e)
-                        }
-                      }
-                      return (
-                        <div key={f.id} className="border rounded-lg p-2 bg-card w-fit max-w-[50%] min-w-0">
-                          {isImage && preview ? (
-                            <img src={preview} className="max-w-[200px] max-h-[200px] object-cover rounded" />
-                          ) : (
-                            <div className="text-xs flex items-center gap-2 min-w-0">
-                              <span className="px-2 py-1 bg-muted rounded truncate">{f.file_name}</span>
-                              <span className="opacity-60 flex-shrink-0">{Math.round(f.size / 1024)} KB</span>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-                <div
-                  className={`message user ml-auto px-4 py-2 bg-card w-fit rounded-2xl break-words transition-all duration-300 ${isChatExpanded ? 'max-w-[90%]' : 'max-w-[80%]'
-                    } min-w-0`}
-                >
-                  <Markdown
-                    children={renderedContent}
-                    remarkPlugins={[remarkGfm, remarkMath]}
-                    rehypePlugins={[rehypeKatex, rehypeRaw]}
-                    components={{
-
-                      code(props) {
-                        const { children, className, node, ...rest } = props;
-                        const match = /language-(\w+)/.exec(className || "");
-                        return match ? (
-                          <div className="relative w-full max-w-full">
-                            <div className="absolute right-2 top-2 z-10">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="flex gap-2 items-center"
-                                onClick={() =>
-                                  handleCopyToClipboard(String(children))
-                                }
-                              >
-                                <Clipboard className="h-4 w-4" />
-                                Copy code
-                              </Button>
-                            </div>
-                            <div className="w-full max-w-full overflow-x-auto">
-                              {
-                                // @ts-ignore
-                                <SyntaxHighlighter
-                                  {...rest}
-                                  PreTag="div"
-                                  children={String(children).replace(/\n$/, "")}
-                                  language={match[1]}
-                                  style={atomDark}
-                                  customStyle={{
-                                    margin: 0,
-                                    maxWidth: '100%',
-                                    overflowX: 'auto',
-                                    fontSize: '14px',
-                                    whiteSpace: 'pre'
-                                  }}
-                                  wrapLongLines={false}
-                                />
-                              }
-                            </div>
-                          </div>
-                        ) : (
-                          <code {...rest} className={`${className} break-words`}>
-                            {children}
-                          </code>
-                        );
-                      },
-                    }}
-                  />
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="p-0 opacity-50 hover:opacity-100"
-                  onClick={() => handleCopyToClipboard(renderedContent)}
-                >
-                  <Clipboard />
-                </Button>
-              </div>
-            );
-          } else {
-            return (
-              <div
-                key={message.id || `ai-${index}`}
-                className={`message assistant w-full min-w-0 transition-all duration-300 ${isChatExpanded ? 'max-w-full' : 'max-w-full'
-                  }`}
-              >
-                {message.files && message.files.length > 0 && (
-                  <div className="flex flex-row gap-2 flex-wrap max-w-full">
-                    {message.files.slice(0, 2).map((f) => {
-                      const isImage = f.mime_type.startsWith("image/");
-                      let preview: string | undefined;
-                      if (isImage) {
-                        try {
-                          let byteCharacters = f.data;
-                          if (typeof f.data === 'string') {
-                            byteCharacters = JSON.parse(f.data);
-                          }
-                          // @ts-ignore
-                          const blob = new Blob([new Uint8Array(byteCharacters)], { type: f.mime_type });
-                          preview = URL.createObjectURL(blob);
-                        } catch (e) {
-                          console.error("Error creating image preview:", e)
-                        }
-                      }
-                      return (
-                        <div key={f.id} className="border rounded-lg p-2 bg-card w-fit max-w-[50%] min-w-0">
-                          {isImage && preview ? (
-                            <img src={preview} className="max-w-[200px] max-h-[200px] object-cover rounded" />
-                          ) : (
-                            <div className="text-xs flex items-center gap-2 min-w-0">
-                              <span className="px-2 py-1 bg-muted rounded truncate">{f.file_name}</span>
-                              <span className="opacity-60 flex-shrink-0">{Math.round(f.size / 1024)} KB</span>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-                {loading && index === messages.length - 1 && !message.content ? (
-                  <LoadingUI />
-                ) : (
-                  <Markdown
-                    children={renderedContent}
-                    remarkPlugins={[remarkGfm, remarkMath]}
-                    rehypePlugins={[rehypeKatex, rehypeRaw]}
-                    components={{
-                      a: ({ href, children }) => {
-                        if (!href) return null;
-
-                        return (
-                          <LinkPreviewTooltip href={href} >
-                            <span className="cursor-pointer !no-underline bg-accent/20 px-2 rounded-full py-1 text-xs hover:bg-accent/10 transition">
-                              {children}
-                            </span>
-                          </LinkPreviewTooltip>
-                        );
-                      },
-                      code(props) {
-                        const { children, className, node, ...rest } = props;
-                        const match = /language-(\w+)/.exec(className || "");
-                        return match ? (
-                          <div className="relative">
-                            <div className="absolute right-2 top-2 z-10">
-                              <Button
-                                variant="outline"
-                                className="flex gap-2 items-center"
-                                onClick={() =>
-                                  handleCopyToClipboard(String(children))
-                                }
-                              >
-                                <Clipboard className="h-4 w-4" />
-                                Copy
-                              </Button>
-                            </div>
-                            {
-                              // @ts-ignore
-                              <SyntaxHighlighter
-                                {...rest}
-                                PreTag="div"
-                                children={String(children).replace(/\n$/, "")}
-                                language={match[1]}
-                                style={atomDark}
-                              />
-                            }
-                          </div>
-                        ) : (
-                          <code {...rest} className={className}>
-                            {children}
-                          </code>
-                        );
-                      },
-                    }}
-                  />
-                )}
-                {message.role === "assistant" && message.usageMetadata && (
-                  <div
-                    className="mt-2 mb-1 px-4 py-2 rounded-xl border bg-card/70 shadow-sm flex flex-col gap-1 text-xs text-muted-foreground"
-                    style={{
-                      fontFamily: 'var(--font-mono)',
-                      maxWidth: 'fit-content',
-                      minWidth: '180px',
-                      borderColor: 'var(--border)',
-                      background: 'var(--card)',
-                      boxShadow: 'var(--shadow-sm)',
-                    }}
-                    aria-label="Token usage details"
-                    role="contentinfo"
-                  >
-                    <div className="font-semibold text-foreground mb-1">Token Usage</div>
-                    <div className="flex flex-wrap gap-2">
-                      <span className="rounded-full bg-muted px-2 py-1" title="Prompt tokens">
-                        Prompt: <span className="font-mono">{message.usageMetadata.promptTokenCount}</span>
-                      </span>
-                      <span className="rounded-full bg-muted px-2 py-1" title="Candidates tokens">
-                        Candidates: <span className="font-mono">{message.usageMetadata.candidatesTokenCount}</span>
-                      </span>
-                      <span className="rounded-full bg-muted px-2 py-1" title="Total tokens">
-                        Total: <span className="font-mono">{message.usageMetadata.totalTokenCount}</span>
-                      </span>
-                      <span className="rounded-full bg-muted px-2 py-1" title="Cached content tokens">
-                        Cached: <span className="font-mono">{message.usageMetadata.cachedContentTokenCount}</span>
-                      </span>
-                    </div>
-                    <div className="mt-1">
-                      <span className="font-semibold">Prompt Details:</span>
-                      <ul className="list-disc ml-4">
-                        {message.usageMetadata.promptTokensDetails?.map((detail: any, i: number) => (
-                          <li key={i}>
-                            <span className="font-mono">{detail.modality}</span>: <span className="font-mono">{detail.tokenCount}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                )}
-                {message.role === "assistant" && message.groundingChunks && message.groundingChunks.length > 0 && (
-                  <div
-                    className="mt-2 mb-1 px-4 py-2 rounded-xl border bg-card/70 shadow-sm flex flex-col gap-1 text-xs text-muted-foreground"
-                    style={{
-                      fontFamily: 'var(--font-mono)',
-                      maxWidth: 'fit-content',
-                      minWidth: '180px',
-                      borderColor: 'var(--border)',
-                      background: 'var(--card)',
-                      boxShadow: 'var(--shadow-sm)',
-                    }}
-                    aria-label="Sources"
-                    role="contentinfo"
-                  >
-                    <div className="font-semibold text-foreground mb-1">Sources</div>
-                    <ol className="list-decimal ml-4">
-                      {message.groundingChunks.map((chunk: any, i: number) => (
-                        <li key={i}>
-                          {chunk.web?.uri ? (
-                            <LinkPreviewTooltip href={chunk.web.uri}>
-                              {chunk.web.title || chunk.web.uri}
-                            </LinkPreviewTooltip>
-                          ) : (
-                            <span>{chunk.web?.uri}</span>
-                          )}
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="p-0 opacity-50 hover:opacity-100"
-                  onClick={() => handleCopyToClipboard(message.content)}
-                >
-                  <Clipboard />
-                </Button>
-              </div>
-            );
-          }
+          console.log(message);
+          return (
+            <MessageItem
+              key={message.id}
+              message={message}
+              isChatExpanded={isChatExpanded}
+              handleCopyToClipboard={handleCopyToClipboard}
+              loading={loading && index === messages.length - 1}
+            />
+          );
         })}
       </div>
     </TooltipProvider>
