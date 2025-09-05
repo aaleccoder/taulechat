@@ -1,5 +1,5 @@
 import { load } from "@tauri-apps/plugin-store";
-import { OpenRouterModel, GeminiModel } from "./state";
+import { OpenRouterModel, GeminiModel, ModelParameters } from "./state";
 const store = await load("store.json", {
   autoSave: false,
   defaults: {},
@@ -22,6 +22,32 @@ export const saveDefaultModel = async (model_id: string) => {
 
 export const getDefaultModel = async (): Promise<string | undefined> => {
   return await store.get<string>("default_model");
+};
+
+// Favorites functionality
+export const saveFavoriteModel = async (model_id: string) => {
+  const currentFavorites = await getFavoriteModels();
+  if (!currentFavorites.includes(model_id)) {
+    const newFavorites = [...currentFavorites, model_id];
+    await store.set("favorite_models", newFavorites);
+    await store.save();
+  }
+};
+
+export const removeFavoriteModel = async (model_id: string) => {
+  const currentFavorites = await getFavoriteModels();
+  const newFavorites = currentFavorites.filter(id => id !== model_id);
+  await store.set("favorite_models", newFavorites);
+  await store.save();
+};
+
+export const getFavoriteModels = async (): Promise<string[]> => {
+  return await store.get<string[]>("favorite_models") || [];
+};
+
+export const isFavoriteModel = async (model_id: string): Promise<boolean> => {
+  const favorites = await getFavoriteModels();
+  return favorites.includes(model_id);
 };
 
 export async function getOpenRouterModelsFromStore(): Promise<
@@ -87,4 +113,27 @@ export async function getModelById(id: string): Promise<OpenRouterModel | Gemini
     openRouterModels.find((model) => model.id === id) ||
     geminiModels.find((model) => model.id === id)
   );
+}
+
+export async function saveModelParameters(modelId: string, parameters: ModelParameters) {
+  const currentParams = await store.get<{ [key: string]: ModelParameters }>("model_parameters") || {};
+  currentParams[modelId] = parameters;
+  await store.set("model_parameters", currentParams);
+  await store.save();
+}
+
+export async function getModelParameters(modelId: string): Promise<ModelParameters | undefined> {
+  const allParams = await store.get<{ [key: string]: ModelParameters }>("model_parameters") || {};
+  return allParams[modelId];
+}
+
+export async function getAllModelParameters(): Promise<{ [key: string]: ModelParameters }> {
+  return await store.get<{ [key: string]: ModelParameters }>("model_parameters") || {};
+}
+
+export async function removeModelParameters(modelId: string) {
+  const currentParams = await store.get<{ [key: string]: ModelParameters }>("model_parameters") || {};
+  delete currentParams[modelId];
+  await store.set("model_parameters", currentParams);
+  await store.save();
 }

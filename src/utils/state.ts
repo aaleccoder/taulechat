@@ -1,6 +1,46 @@
 import { create } from "zustand";
 import { getConversation as dbGetConversation, getMessagesForConversation, createConversation as dbCreateConversation, deleteConversation, getFilesForMessage } from "@/lib/database/methods";
 
+export interface ModelParameters {
+  // Basic parameters
+  temperature?: number;
+  max_tokens?: number;
+  top_p?: number;
+  top_k?: number;
+  
+  // Penalty parameters
+  frequency_penalty?: number;
+  presence_penalty?: number;
+  repetition_penalty?: number;
+  
+  // Advanced parameters
+  seed?: number;
+  min_p?: number;
+  top_a?: number;
+  
+  // Stop sequences
+  stop?: string | string[];
+  
+  // Response format
+  response_format?: { type: 'json_object' };
+  
+  // OpenRouter specific
+  transforms?: string[];
+  models?: string[];
+  route?: 'fallback';
+  provider?: any;
+  user?: string;
+  
+  // Tool calling
+  tools?: any[];
+  tool_choice?: any;
+  
+  // Other parameters
+  logit_bias?: { [key: number]: number };
+  top_logprobs?: number;
+  prediction?: { type: 'content'; content: string };
+}
+
 export type ConversationState = {
     id: string;
     model_id: string,
@@ -88,6 +128,7 @@ export type SidebarDataState = {
 
 export type ChatConversationsState = {
     conversation: ConversationState | null;
+    modelParameters: { [modelId: string]: ModelParameters };
 
     // Now requires a conversationId; implementation will fetch data from DB.
     setConversation: (conversationId: string | null) => Promise<void>;
@@ -101,6 +142,12 @@ export type ChatConversationsState = {
     updateMessage: (messageId: string, patch: Partial<ChatMessage> | string) => void;
     removeMessage: (messageId: string) => void;
     setMessages: (messages: ChatMessage[]) => void;
+
+    // Model parameters methods
+    setModelParameters: (modelId: string, parameters: ModelParameters) => void;
+    getModelParameters: (modelId: string) => ModelParameters | undefined;
+    resetModelParameters: (modelId: string) => void;
+    loadModelParameters: () => Promise<void>;
 
     clearAll: () => void;
 };
@@ -161,6 +208,7 @@ export type OpenRouterModel = {
 
 export const useStore = create<ChatConversationsState>((set, get) => ({
     conversation: null,
+    modelParameters: {},
 
     setConversation: async (conversationId: string | null) => {
         if (!conversationId) {
@@ -274,6 +322,33 @@ export const useStore = create<ChatConversationsState>((set, get) => ({
 
     setMessages: (messages: ChatMessage[]) =>
         set((state) => ({ conversation: state.conversation ? { ...state.conversation, messages } : state.conversation })),
+
+    // Model parameters methods
+    setModelParameters: (modelId: string, parameters: ModelParameters) =>
+        set((state) => ({ 
+            modelParameters: { 
+                ...state.modelParameters, 
+                [modelId]: parameters 
+            } 
+        })),
+
+    getModelParameters: (modelId: string) => get().modelParameters[modelId],
+
+    resetModelParameters: (modelId: string) =>
+        set((state) => {
+            const { [modelId]: _, ...rest } = state.modelParameters;
+            return { modelParameters: rest };
+        }),
+
+    loadModelParameters: async () => {
+        try {
+            const { getAllModelParameters } = await import("@/utils/store");
+            const allParams = await getAllModelParameters();
+            set({ modelParameters: allParams });
+        } catch (error) {
+            console.error("Error loading model parameters:", error);
+        }
+    },
 
     clearAll: () => set(() => ({ conversation: null })),
 }));

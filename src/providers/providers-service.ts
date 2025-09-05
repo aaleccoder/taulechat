@@ -10,6 +10,7 @@ import {
   finalizeAssistantMessage,
 } from "@/services/conversation-manager";
 import { toast } from "sonner";
+import { ModelParameters } from "@/utils/state";
 
 // Custom error classes for improved error handling
 export class ChatServiceError extends Error {
@@ -108,7 +109,7 @@ export function useChatService() {
   }
 
   const sendPrompt = useCallback(
-    async (id: string, prompt: string, model_id: string, attachments: SelectedAttachment[] = []) => {
+    async (id: string, prompt: string, model_id: string, attachments: SelectedAttachment[] = [], parameters?: ModelParameters) => {
       if (loading) return;
       setLoading(true);
       let isNewConversation = false;
@@ -170,12 +171,14 @@ export function useChatService() {
             messages: formattedMessages,
             apiKey,
             attachments: geminiParts,
+            parameters,
           });
         } else {
           reader = await provider.streamResponse({
             modelId: model_id,
             messages: formattedMessages,
             apiKey,
+            parameters,
           });
         }
         if (!reader) throw new ProviderResponseError("Failed to get response reader");

@@ -41,23 +41,69 @@ export class OpenRouterProvider implements ChatProvider {
   }
 
   async streamResponse(request: StreamRequest): Promise<ReadableStreamDefaultReader<Uint8Array>> {
+    // Build the request body
+    const requestBody: any = {
+      model: request.modelId,
+      messages: request.messages,
+      stream: true,
+      reasoning: { 
+        enabled: true 
+      },
+      usage: {
+        include: true
+      }
+    };
+
+    // Add parameters if provided
+    if (request.parameters) {
+      const params = request.parameters;
+      
+      // Basic parameters
+      if (params.temperature !== undefined) requestBody.temperature = params.temperature;
+      if (params.max_tokens !== undefined) requestBody.max_tokens = params.max_tokens;
+      if (params.top_p !== undefined) requestBody.top_p = params.top_p;
+      if (params.top_k !== undefined) requestBody.top_k = params.top_k;
+      
+      // Penalty parameters
+      if (params.frequency_penalty !== undefined) requestBody.frequency_penalty = params.frequency_penalty;
+      if (params.presence_penalty !== undefined) requestBody.presence_penalty = params.presence_penalty;
+      if (params.repetition_penalty !== undefined) requestBody.repetition_penalty = params.repetition_penalty;
+      
+      // Advanced parameters
+      if (params.seed !== undefined) requestBody.seed = params.seed;
+      if (params.min_p !== undefined) requestBody.min_p = params.min_p;
+      if (params.top_a !== undefined) requestBody.top_a = params.top_a;
+      
+      // Stop sequences
+      if (params.stop !== undefined) requestBody.stop = params.stop;
+      
+      // Response format
+      if (params.response_format !== undefined) requestBody.response_format = params.response_format;
+      
+      // OpenRouter specific
+      if (params.transforms !== undefined) requestBody.transforms = params.transforms;
+      if (params.models !== undefined) requestBody.models = params.models;
+      if (params.route !== undefined) requestBody.route = params.route;
+      if (params.provider !== undefined) requestBody.provider = params.provider;
+      if (params.user !== undefined) requestBody.user = params.user;
+      
+      // Tool calling
+      if (params.tools !== undefined) requestBody.tools = params.tools;
+      if (params.tool_choice !== undefined) requestBody.tool_choice = params.tool_choice;
+      
+      // Other parameters
+      if (params.logit_bias !== undefined) requestBody.logit_bias = params.logit_bias;
+      if (params.top_logprobs !== undefined) requestBody.top_logprobs = params.top_logprobs;
+      if (params.prediction !== undefined) requestBody.prediction = params.prediction;
+    }
+
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${request.apiKey || ""}`,
       },
-      body: JSON.stringify({
-        model: request.modelId,
-        messages: request.messages,
-        stream: true,
-        reasoning: { 
-          enabled: true 
-        },
-        usage: {
-          include: true
-        }
-      }),
+      body: JSON.stringify(requestBody),
     });
   if (!response.ok) {
     let errorMsg = `OpenRouter error: ${response.status}`;

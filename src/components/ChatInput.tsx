@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { OpenRouterModel, GeminiModel, useStore } from "@/utils/state";
-import { getDefaultModel, getModelsFromStore, saveDefaultModel } from "@/utils/store";
+import { getModelsFromStore, saveFavoriteModel, removeFavoriteModel, isFavoriteModel } from "@/utils/store";
 import { toast } from "sonner";
 import ModelPicker from "./ModelPicker";
 import AttachmentStrip from "./AttachmentStrip";
@@ -18,7 +18,7 @@ export default function ChatInput({ id }: { id: string }) {
   const navigate = useNavigate();
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const conversationModelId = useStore((s) => s.conversation?.model_id);
-  const [defaultModelId, setDefaultModelId] = useState<string | undefined>(undefined);
+  const { getModelParameters, loadModelParameters } = useStore();
   const { attachments, handleFileUpload, removeAttachment, setAttachments, isProcessing } = useAttachments(selectedModel);
 
   useEffect(() => {
@@ -26,34 +26,22 @@ export default function ChatInput({ id }: { id: string }) {
       try {
         const [openRouterModels, geminiModels] = await getModelsFromStore();
         const fetchedModels = [...openRouterModels, ...geminiModels];
-        const default_model_id = await getDefaultModel();
         const model_id = conversationModelId;
+
+        await loadModelParameters();
+
         setModels(fetchedModels);
         if (model_id) {
           const fromConversation = fetchedModels.find((model) => (model as any).id === model_id) || null;
           setSelectedModel(fromConversation);
-          setDefaultModelId(default_model_id);
           return;
         }
-        if (!id && !selectedModel && default_model_id) {
-          const fromDefault = fetchedModels.find((model) => (model as any).id === default_model_id) || null;
-          setSelectedModel(fromDefault);
-        }
-        setDefaultModelId(default_model_id);
       } catch (error) {
         console.error("Error fetching models:", error);
       }
     };
     loadModels();
-  }, [id, conversationModelId]);
-
-  useEffect(() => {
-    if (!open) {
-      getDefaultModel()
-        .then((m) => setDefaultModelId(m))
-        .catch((err) => console.error("Error loading default model:", err));
-    }
-  }, [open]);
+  }, [id, conversationModelId, loadModelParameters]);
 
   const sendMessage = async (e?: React.MouseEvent<HTMLButtonElement>) => {
     if (e) e.preventDefault();
@@ -64,13 +52,16 @@ export default function ChatInput({ id }: { id: string }) {
       return;
     }
 
+    const modelId = (selectedModel as any)?.id ?? "";
+    const parameters = modelId ? getModelParameters(modelId) : undefined;
+
     let chatId = id;
     if (!chatId) {
       const newId = crypto.randomUUID();
-      sendPrompt(newId, userInput.trim(), (selectedModel as any)?.id ?? "", attachments);
+      sendPrompt(newId, userInput.trim(), modelId, attachments, parameters);
       navigate(`/chat/${newId}`);
     } else {
-      sendPrompt(chatId, userInput.trim(), (selectedModel as any)?.id ?? "", attachments);
+      sendPrompt(chatId, userInput.trim(), modelId, attachments, parameters);
     }
     setUserInput("");
     setAttachments([]);
@@ -95,7 +86,7 @@ export default function ChatInput({ id }: { id: string }) {
     }
   };
 
-  const handleQuickSetDefault = async () => {
+  const handleToggleFavorite = async () => {
     if (!selectedModel) {
       toast.error("Select a model first");
       return;
@@ -105,16 +96,18 @@ export default function ChatInput({ id }: { id: string }) {
       toast.error("Invalid model");
       return;
     }
-    if (modelId === defaultModelId) {
-      toast.error("That's already the default model");
-      return;
+
+    const isCurrentlyFavorite = await isFavoriteModel(modelId);
+
+    if (isCurrentlyFavorite) {
+      await removeFavoriteModel(modelId);
+      toast.success("Removed from favorites");
+    } else {
+      await saveFavoriteModel(modelId);
+      toast.success("Added to favorites");
     }
-    await saveDefaultModel(modelId);
-    setDefaultModelId(modelId);
-    toast.success("Default model updated");
   };
 
-  // File upload logic is now handled by useAttachments
 
   return (
     <div className="flex justify-center items-center w-full h-full mx-auto">
@@ -184,10 +177,9 @@ export default function ChatInput({ id }: { id: string }) {
                 models={models}
                 selectedModel={selectedModel}
                 setSelectedModel={setSelectedModel}
-                defaultModelId={defaultModelId}
                 open={open}
                 setOpen={setOpen}
-                handleQuickSetDefault={handleQuickSetDefault}
+                handleToggleFavorite={handleToggleFavorite}
               />
             </div>
           </div>
