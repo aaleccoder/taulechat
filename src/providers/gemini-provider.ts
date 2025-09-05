@@ -19,11 +19,13 @@ export class GeminiProvider implements ChatProvider {
     if (request.apiKey) headers["x-goog-api-key"] = request.apiKey;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${request.modelId.split("/")[1]}:streamGenerateContent?alt=sse`;
     const body = JSON.stringify({
-      contents: [
-        {
-          parts: request.attachments ? request.attachments : [{ text: "" }],
-        },
-      ],
+      contents: request.messages.map((m) => {
+        const parts = [{ text: m.content }];
+        if (m.role === "user" && request.attachments) {
+          return { role: "user", parts: [...parts, ...request.attachments.slice(1)] };
+        }
+        return { role: m.role === "assistant" ? "model" : "user", parts };
+      }),
       tools: [{ google_search: {} }],
     });
     const response = await fetch(url, {
