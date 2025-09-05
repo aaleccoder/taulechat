@@ -172,4 +172,3 @@ export default function ChatInput({ id }: { id: string }) {
   );
 }
 
-// ModelsList is now in its own file

@@ -1,10 +1,16 @@
 import { ProviderName } from "@/components/Settings";
-import { createMessage, createMessageFile } from "@/lib/database/methods";
-import { ChatMessage, MessageFile, useLoading, useSidebarConversation, useStore } from "@/utils/state";
+import { useLoading, useSidebarConversation, useStore } from "@/utils/state";
 import { getAPIKeyFromStore, getModelById } from "@/utils/store";
-import { fetch } from "@tauri-apps/plugin-http";
 import { useCallback, useState } from "react";
+import { getChatProvider } from "./provider-factory";
+import {
+  initializeNewConversation,
+  storeUserMessage,
+  streamAssistantMessageUpdate,
+  finalizeAssistantMessage,
+} from "@/services/conversation-manager";
 import { toast } from "sonner";
+
 
 function createTitleFromPrompt(prompt: string) {
   const maxLength = 50;
@@ -14,9 +20,9 @@ function createTitleFromPrompt(prompt: string) {
   return prompt;
 }
 
+
 class HttpError extends Error {
   status: number;
-
   constructor(message: string, status: number) {
     super(message);
     this.status = status;
@@ -24,7 +30,8 @@ class HttpError extends Error {
 }
 
 
-export function useOpenRouter() {
+
+export function useChatService() {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -48,297 +55,104 @@ export function useOpenRouter() {
 
   const sendPrompt = useCallback(
     async (id: string, prompt: string, model_id: string, attachments: SelectedAttachment[] = []) => {
-      if (loading) return; // Prevent re-entry
+      if (loading) return;
       setLoading(true);
-      const model = await getModelById(model_id);
-      const isGemini = model?.provider === "Gemini";
-      const isOpenRouter = model?.provider === "OpenRouter";
-      const supportsImages = !!model?.architecture?.input_modalities?.includes("image");
-
       let isNewConversation = false;
       try {
         useLoading.getState().setLoading(true);
         let accumulated = "";
+        const model = await getModelById(model_id);
+        const supportsImages = !!model?.architecture?.input_modalities?.includes("image");
+        const isGemini = model?.provider === "Gemini";
+  // const isOpenRouter = model?.provider === "OpenRouter";
 
         const active = useStore.getState().getConversation();
         if (active === null || active.id !== id) {
           isNewConversation = true;
-          await useStore
-            .getState()
-            .createConversation(
-              id,
-              [],
-              model_id,
-              createTitleFromPrompt(prompt),
-            );
-          useSidebarConversation.getState().addConversation({
-            id: id,
-            model_id: model_id,
-            title: createTitleFromPrompt(prompt),
-          });
+          await initializeNewConversation(id, createTitleFromPrompt(prompt), model_id);
         }
 
-        const userMessage: ChatMessage = {
-          id: crypto.randomUUID(),
-          content: prompt,
-          role: "user",
-          conversation_id: id,
-          created_at: new Date().toISOString(),
-          files: attachments.slice(0, 2).map((a) => ({
-            id: a.id,
-            message_id: "", // will be set when loaded from DB
-            file_name: a.fileName,
-            mime_type: a.mimeType,
-            data: a.bytes,
-            size: a.size,
-            created_at: new Date().toISOString(),
-          })) as MessageFile[],
-        };
-        useStore.getState().addMessage(userMessage);
-        await createMessage(userMessage.id, id, "user", userMessage.content);
+        // Store user message and attachments
+  await storeUserMessage(id, prompt, attachments);
 
-        if (attachments.length > 0) {
-          if (!isOpenRouter && !isGemini) {
-            toast.error("Attachments are only supported for OpenRouter and Gemini models.");
-          } else {
-            for (const a of attachments.slice(0, 2)) {
-              try {
-                await createMessageFile(a.id, userMessage.id, a.fileName, a.mimeType, a.bytes, a.size);
-              } catch (e) {
-                console.error("Failed to save attachment:", e);
-              }
-            }
-          }
-        }
-
+        // Add assistant placeholder
         const assistantID = crypto.randomUUID();
-        const assistantMessage: ChatMessage = {
+        useStore.getState().addMessage({
           id: assistantID,
           content: "",
           role: "assistant",
           conversation_id: id,
           created_at: new Date().toISOString(),
-        };
-        useStore.getState().addMessage(assistantMessage);
-
-        const storeConversation = useStore.getState().getConversation();
-        const storeMessages = storeConversation?.messages || [];
-        const formattedMessages = storeMessages.map((m) => {
-          if (isOpenRouter && m.role === "user" && (m.files?.length || 0) > 0) {
-            const parts: any[] = [];
-            if (m.content?.trim()) parts.push({ type: "text", text: m.content });
-            if (supportsImages) {
-              for (const f of m.files!.slice(0, 2)) {
-                if (f.mime_type.startsWith("image/")) {
-                  const b64 = uint8ToBase64(f.data);
-                  parts.push({ type: "image_url", image_url: { url: `data:${f.mime_type};base64,${b64}` } });
-                }
-              }
-            }
-            return { role: m.role, content: parts.length > 0 ? parts : m.content };
-          }
-          return { role: m.role, content: m.content };
         });
 
-        const apiKey = await getAPIKeyFromStore(
-          isGemini ? ProviderName.Gemini : ProviderName.OpenRouter,
-        );
-        useSidebarConversation.getState().setActiveChat(id);
-        if (isGemini) {
-          const headers: Record<string, string> = {
-            "Content-Type": "application/json",
-          };
-          if (apiKey) {
-            headers["x-goog-api-key"] = apiKey;
-          }
-          
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model_id.split("/")[1]}:streamGenerateContent?alt=sse`;
-          
-          const parts: any[] = [{ text: prompt }];
+        // Format messages for provider
+        const storeConversation = useStore.getState().getConversation();
+        const storeMessages = storeConversation?.messages || [];
+        const provider = await getChatProvider(model_id);
+        const formattedMessages = provider.formatMessages(storeMessages, { supportsImages });
 
-          if (attachments.length > 0) {
-            for (const attachment of attachments) {
-              if (attachment.mimeType === "application/pdf") {
-                const base64 = uint8ToBase64(attachment.bytes);
-                parts.push({
-                  inline_data: {
-                    mime_type: "application/pdf",
-                    data: base64,
-                  },
-                });
-              } else if (attachment.mimeType.startsWith("image/")) {
-                const base64 = uint8ToBase64(attachment.bytes);
-                parts.push({
-                  inline_data: {
-                    mime_type: attachment.mimeType,
-                    data: base64,
-                  },
-                });
-              }
-            }
-          }
-
-          const body = JSON.stringify({
-            contents: [
-              {
-                parts: parts,
+        // Prepare attachments for Gemini
+        let geminiParts: any[] = [{ text: prompt }];
+        if (isGemini && attachments.length > 0) {
+          for (const attachment of attachments) {
+            const base64 = uint8ToBase64(attachment.bytes);
+            geminiParts.push({
+              inline_data: {
+                mime_type: attachment.mimeType,
+                data: base64,
               },
-            ],
-            tools: [
-              {
-                "google_search": {}
-              }
-            ]
+            });
+          }
+        }
+
+        // Get API key
+        const apiKey: string | null = (await getAPIKeyFromStore(
+          isGemini ? ProviderName.Gemini : ProviderName.OpenRouter,
+        )) ?? null;
+        useSidebarConversation.getState().setActiveChat(id);
+
+        // Stream response from provider
+        let reader;
+        if (isGemini) {
+          reader = await provider.streamResponse({
+            modelId: model_id,
+            messages: formattedMessages,
+            apiKey,
+            attachments: geminiParts,
           });
-          const response = await fetch(url, {
-            method: "POST",
-            headers,
-            body,
-          });
-          if (!response.ok) {
-            if (response.status === 404) {
-              toast.error("The selected Gemini model does not exist.");
-              setLoading(false);
-              useLoading.getState().setLoading(false);
-              return;
-            }
-            throw new HttpError(`Gemini API error! status: ${response.status}`, response.status);
-          }
-          const reader = response.body?.getReader();
-          if (!reader) {
-            throw new Error("Failed to get Gemini response reader");
-          }
-          const decoder = new TextDecoder();
-          gemini_stream_loop: while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            const chunk = decoder.decode(value, { stream: true });
-            const lines = chunk.split("\n").filter((line) => line.startsWith("data: "));
-            for (const line of lines) {
-              const jsonStr = line.replace("data: ", "").trim();
-              if (jsonStr === "[DONE]") break gemini_stream_loop;
-              try {
-                const parsed = JSON.parse(jsonStr);
-                const token = parsed?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                accumulated += token;
-                setText(accumulated);
-                // Save Gemini fields for final DB update
-                assistantMessage.groundingChunks = parsed?.candidates?.[0]?.groundingMetadata?.groundingChunks;
-                assistantMessage.groundingSupports = parsed?.candidates?.[0]?.groundingMetadata?.groundingSupports;
-                assistantMessage.webSearchQueries = parsed?.webSearchQueries;
-                assistantMessage.usageMetadata = parsed?.usageMetadata;
-                assistantMessage.modelVersion = parsed?.modelVersion;
-                assistantMessage.responseId = parsed?.responseId;
-                useStore.getState().updateMessage(assistantID, {
-                  content: accumulated,
-                  groundingChunks: assistantMessage.groundingChunks,
-                  groundingSupports: assistantMessage.groundingSupports,
-                  webSearchQueries: assistantMessage.webSearchQueries,
-                  usageMetadata: assistantMessage.usageMetadata,
-                  modelVersion: assistantMessage.modelVersion,
-                  responseId: assistantMessage.responseId,
-                });
-              } catch (error) {
-                console.error("Failed to parse Gemini stream chunk:", error);
-              }
-            }
-          }
-          await createMessage(
-            assistantID,
-            id,
-            "assistant",
-            accumulated,
-            undefined,
-            JSON.stringify(assistantMessage.groundingChunks ?? null),
-            JSON.stringify(assistantMessage.groundingSupports ?? null),
-            JSON.stringify(assistantMessage.webSearchQueries ?? null),
-            JSON.stringify(assistantMessage.usageMetadata ?? null),
-            assistantMessage.modelVersion ?? null,
-            assistantMessage.responseId ?? null
-          );
         } else {
-          const response = await fetch(
-            "https://openrouter.ai/api/v1/chat/completions",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${apiKey || ""}`,
-            },
-            body: JSON.stringify({
-              model: model_id,
-              messages: formattedMessages,
-              stream: true,
-            }),
-          },
-        );
-
-        if (!response.ok) {
-          throw new HttpError(
-            `HTTP error! status: ${response.status}`,
-            response.status,
-          );
+          reader = await provider.streamResponse({
+            modelId: model_id,
+            messages: formattedMessages,
+            apiKey,
+          });
         }
-
-        const reader = response.body?.getReader();
-        if (!reader) {
-          throw new Error("Failed to get response reader");
-        }
+        if (!reader) throw new Error("Failed to get response reader");
         const decoder = new TextDecoder();
-
-        while (true) {
+        let metadata: any = {};
+        stream_loop: while (true) {
           const { done, value } = await reader.read();
-          if (done) {
-            break;
-          }
-
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk
-            .split("\n")
-            .filter((line) => line.startsWith("data: "));
-
-          for (const line of lines) {
-            const jsonStr = line.replace("data: ", "");
-            if (jsonStr === "[DONE]") {
-              break;
-            }
-            try {
-              const parsed = JSON.parse(jsonStr);
-              const token = parsed.choices[0]?.delta?.content || "";
-              accumulated += token;
-              setText(accumulated);
-              useStore.getState().updateMessage(assistantID, accumulated);
-            } catch (error) {
-              console.error("Failed to parse stream chunk:", error);
-            }
-          }
+          if (done) break;
+          const { token, metadata: meta } = provider.parseStreamChunk(value, decoder);
+          accumulated += token;
+          setText(accumulated);
+          if (isGemini && meta) metadata = meta;
+          streamAssistantMessageUpdate(assistantID, accumulated, isGemini ? metadata : undefined);
         }
-        }
-
-        if (!isGemini) {
-          await createMessage(assistantID, id, "assistant", accumulated);
-        }
-      } catch (error) {
+        await finalizeAssistantMessage(assistantID, id, accumulated, isGemini ? metadata : undefined);
+      } catch (error: any) {
         console.error("Error sending prompt:", error);
         if (error instanceof HttpError) {
           if (error.status === 401) {
-            toast.error(
-              `Please provide a valid ${isGemini ? "Gemini" : "OpenRouter"} API key`,
-            );
+            toast.error(`Please provide a valid API key for this provider.`);
           } else if (error.status === 429) {
             toast.error("You have hit the rate limit. Please try again later.");
           }
-
-          if (
-            isNewConversation &&
-            (error.status === 401 || error.status === 429)
-          ) {
+          if (isNewConversation && (error.status === 401 || error.status === 429)) {
             useSidebarConversation.getState().removeConversation(id);
             useStore.getState().removeConversation();
           }
-          useLoading.getState().setLoading(false);
         } else {
-          useLoading.getState().setLoading(false);
           toast.error("An unexpected error occurred. Please try again.");
         }
       } finally {
@@ -351,3 +165,6 @@ export function useOpenRouter() {
 
   return { text, loading, sendPrompt };
 }
+
+// Backward compatibility
+export const useOpenRouter = useChatService;
