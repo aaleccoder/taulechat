@@ -62,6 +62,16 @@ export const useUIVisibility = create<UIVisibilityState>((set) => ({
     setChatExpanded: (expanded: boolean) => set({ isChatExpanded: expanded }),
 }));
 
+export type LightboxState = {
+    lightboxImage: string | null;
+    setLightboxImage: (image: string | null) => void;
+};
+
+export const useLightbox = create<LightboxState>((set) => ({
+    lightboxImage: null,
+    setLightboxImage: (image: string | null) => set({ lightboxImage: image }),
+}));
+
 
 export type SidebarDataState = {
     conversations: Omit<ConversationState, 'messages'>[];

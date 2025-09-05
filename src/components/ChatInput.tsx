@@ -118,23 +118,12 @@ export default function ChatInput({ id }: { id: string }) {
 
   return (
     <div className="flex justify-center items-center w-full h-full mx-auto">
-      <form role="form" aria-label="Chat input" className="chat-input-form">
-        <div className="flex flex-row justify-center items-center w-full">
-          <ModelPicker
-            models={models}
-            selectedModel={selectedModel}
-            setSelectedModel={setSelectedModel}
-            defaultModelId={defaultModelId}
-            open={open}
-            setOpen={setOpen}
-            handleQuickSetDefault={handleQuickSetDefault}
-          />
-        </div>
+      <form role="form" aria-label="Chat input" className="w-full max-w-xl px-2 py-2">
         <AttachmentStrip attachments={attachments} onRemove={removeAttachment} />
-        <div className="input-bar items-center justify-center">
-          <div className="input-container items-center justify-center">
+        <div className="w-full rounded-xl border bg-card shadow-md px-2 py-2 flex flex-col gap-2 items-center motion-safe:transition-shadow focus-within:ring-2 focus-within:ring-ring/50">
+          <div className="w-full flex flex-row items-center gap-2">
             <Button
-              className="attach-btn"
+              className="h-12 w-12 rounded-full motion-safe:transition-all motion-safe:duration-150 hover:bg-accent/10 active:scale-95"
               aria-label="Add attachment"
               title="Add attachment"
               variant="ghost"
@@ -145,7 +134,7 @@ export default function ChatInput({ id }: { id: string }) {
                 <path strokeLinecap="round" strokeLinejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" />
               </svg>
             </Button>
-            <div className="textarea-wrapper">
+            <div className="flex-1">
               <label htmlFor="chat-textarea" className="sr-only">Message</label>
               <textarea
                 id="chat-textarea"
@@ -159,7 +148,7 @@ export default function ChatInput({ id }: { id: string }) {
                 rows={1}
                 aria-multiline
                 aria-label="Type your message"
-                className="textarea"
+                className="max-h-48 w-full resize-none bg-transparent leading-6 outline-none placeholder:text-muted-foreground/70 motion-safe:transition-colors"
                 placeholder="Type your message…"
                 onChange={(e) => {
                   setUserInput(e.target.value);
@@ -171,7 +160,7 @@ export default function ChatInput({ id }: { id: string }) {
               />
             </div>
             <Button
-              className="attach-btn"
+              className="h-12 w-12 rounded-full motion-safe:transition-all motion-safe:duration-150 hover:bg-accent/10 active:scale-95"
               aria-label="Send message"
               onClick={(e) => {
                 if (!selectedModel) {
@@ -188,6 +177,19 @@ export default function ChatInput({ id }: { id: string }) {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
               </svg>
             </Button>
+          </div>
+          <div className="w-full flex justify-start mt-1">
+            <div className="max-w-xs w-full">
+              <ModelPicker
+                models={models}
+                selectedModel={selectedModel}
+                setSelectedModel={setSelectedModel}
+                defaultModelId={defaultModelId}
+                open={open}
+                setOpen={setOpen}
+                handleQuickSetDefault={handleQuickSetDefault}
+              />
+            </div>
           </div>
         </div>
       </form>

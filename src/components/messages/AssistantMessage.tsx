@@ -1,20 +1,13 @@
-import Markdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
-import rehypeRaw from "rehype-raw";
 import { Button } from "../ui/button";
 import { Clipboard } from "lucide-react";
 import AttachmentPreview from "../AttachmentPreview";
-import CodeBlock from "../CodeBlock";
 import UsageMetadataDisplay from "../UsageMetadataDisplay";
-import GroundingSources from "../GroundingSources";
 import LoadingUI from "../loading";
-import LinkPreviewTooltip from "../LinkPreviewTooltip";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "../ui/collapsible";
-import { useState } from "react";
+import { useState, memo } from "react";
+import MemoizedMarkdown from "../markdown/MemoizedMarkdown";
 
-export default function AssistantMessage({ message, isChatExpanded, handleCopyToClipboard, loading }: any) {
+const AssistantMessage = memo(function AssistantMessage({ message, isChatExpanded, handleCopyToClipboard, loading }: any) {
     let renderedContent = message.content;
     if (message.groundingSupports && Array.isArray(message.groundingSupports) && message.groundingChunks) {
         renderedContent = renderedContent.replace(/\s*\[(\d+)\]\([^)]*\s*"[^"]*"\)\s*/g, "");
@@ -87,46 +80,11 @@ export default function AssistantMessage({ message, isChatExpanded, handleCopyTo
             {loading && !message.content ? (
                 <LoadingUI />
             ) : (
-                <Markdown
-                    children={renderedContent}
-                    remarkPlugins={[remarkGfm, remarkMath]}
-                    rehypePlugins={[rehypeKatex, rehypeRaw]}
-                    components={{
-                        a: ({ href, children }) => {
-                            if (!href) return null;
-                            return (
-                                <LinkPreviewTooltip href={href} >
-                                    <span className="cursor-pointer !no-underline bg-accent/20 px-2 rounded-full py-1 text-xs hover:bg-accent/10 transition">
-                                        {children}
-                                    </span>
-                                </LinkPreviewTooltip>
-                            );
-                        },
-                        code(props) {
-                            const { children, className, ...rest } = props;
-                            const match = /language-(\w+)/.exec(className || "");
-                            return match ? (
-                                <CodeBlock
-                                    code={String(children)}
-                                    language={match[1]}
-                                    onCopy={handleCopyToClipboard}
-                                    variant="assistant"
-                                />
-                            ) : (
-                                <code {...rest} className={className}>
-                                    {children}
-                                </code>
-                            );
-                        },
-                    }}
-                />
+                <MemoizedMarkdown content={renderedContent} onCopy={handleCopyToClipboard} />
             )}
 
             {message.usageMetadata && (
                 <UsageMetadataDisplay usageMetadata={message.usageMetadata} />
-            )}
-            {message.groundingChunks && message.groundingChunks.length > 0 && (
-                <GroundingSources groundingChunks={message.groundingChunks} />
             )}
             <Button
                 variant="ghost"
@@ -138,4 +96,6 @@ export default function AssistantMessage({ message, isChatExpanded, handleCopyTo
             </Button>
         </div>
     );
-}
+});
+
+export default AssistantMessage;

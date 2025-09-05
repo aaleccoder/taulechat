@@ -7,8 +7,9 @@ import { Button } from "../ui/button";
 import { Clipboard } from "lucide-react";
 import AttachmentPreview from "../AttachmentPreview";
 import CodeBlock from "../CodeBlock";
+import { memo } from "react";
 
-export default function UserMessage({ message, isChatExpanded, handleCopyToClipboard }: any) {
+const UserMessage = memo(function UserMessage({ message, isChatExpanded, handleCopyToClipboard }: any) {
     return (
         <div
             key={message.id}
@@ -58,4 +59,6 @@ export default function UserMessage({ message, isChatExpanded, handleCopyToClipb
             </Button>
         </div>
     );
-}
+});
+
+export default UserMessage;

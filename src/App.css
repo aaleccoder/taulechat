@@ -264,7 +264,7 @@ body {
 }
 
 .input-container {
-  @apply flex min-h-12 flex-1 items-end gap-2 rounded-full border bg-card px-2 py-2 shadow-md transition-all duration-150 focus-within:shadow-lg focus-within:ring-2 focus-within:ring-ring/50;
+  @apply flex min-h-12 flex-1 items-end gap-2 rounded-xl border bg-card px-2 py-2 shadow-md transition-all duration-150 focus-within:shadow-lg focus-within:ring-2 focus-within:ring-ring/50;
 }
 
 .attach-btn {

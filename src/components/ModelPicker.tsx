@@ -20,7 +20,7 @@ export default function ModelPicker({
     handleQuickSetDefault: () => void;
 }) {
     return (
-        <div className="model-picker-row w-full">
+        <div className="model-picker-row w-full flex flex-row items-center justify-between gap-2">
             <Drawer open={open} onOpenChange={setOpen}>
                 <DrawerTrigger asChild>
                     <Button
