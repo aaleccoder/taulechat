@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { useUIVisibility } from "./utils/state";
 
 function App() {
-  const { isHeaderVisible, isChatExpanded } = useUIVisibility();
+  const { isHeaderVisible } = useUIVisibility();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -46,7 +46,7 @@ function App() {
       <SidebarProvider open={open} onOpenChange={setOpen}>
         <AppSidebar />
         <SidebarInset>
-          <header className={`app-header transition-all duration-300 ${isHeaderVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
+          <header className={`app-header absolute top-0 left-0 right-0 z-30 border-b bg-background/80 backdrop-blur-sm transition-all duration-300 ${isHeaderVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
             }`}>
             <SidebarTrigger className="sidebar-trigger-button" />
 
@@ -68,8 +68,7 @@ function App() {
             </Button>
           </header>
 
-          <main className={`flex flex-1 flex-col gap-4 overflow-hidden transition-all duration-300 ${isChatExpanded ? 'h-screen' : ''
-            }`}>
+          <main className={`flex flex-1 flex-col overflow-hidden`}>
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/chat/:id" element={<ChatScreen />} />
@@ -77,7 +76,7 @@ function App() {
               <Route path="/settings" element={<SettingsScreen />} />
             </Routes>
           </main>
-          <Toaster position="top-center" />
+          <Toaster position="bottom-center" />
         </SidebarInset>
       </SidebarProvider>
     </ThemeProvider >

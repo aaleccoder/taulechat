@@ -116,6 +116,7 @@ export default function AppSidebar() {
   const [multiSelectedChats, setMultiSelectedChats] = useState<string[]>([]);
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
   const filteredConversations = conversations.filter((chat) =>
     (chat.title || "New chat").toLowerCase().includes(searchQuery.toLowerCase())
@@ -208,23 +209,49 @@ export default function AppSidebar() {
           <SidebarGroupLabel className="sidebar-group-label px-2">
             {multiSelectMode ? `${multiSelectedChats.length} selected` : "Chats"}
           </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <div className="px-2 mb-3">
-              <div className="relative">
+          <SidebarGroupContent className="pt-[env(safe-area-inset-top)]">
+            <div className="px-2 mb-3 relative h-10">
+              <div className={`flex items-center gap-2 motion-safe:transition-all motion-safe:duration-300 ${isSearchExpanded ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                <div className="flex-1" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 rounded-full motion-safe:transition-all motion-safe:duration-150 hover:bg-accent/10 active:scale-95"
+                  onClick={() => setIsSearchExpanded(true)}
+                  title="Search chats"
+                  aria-label="Search chats"
+                >
+                  <Search className="w-5 h-5" />
+                </Button>
+              </div>
+              <div className={`absolute inset-0 flex items-center motion-safe:transition-all motion-safe:duration-300 ${isSearchExpanded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'}`}>
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
                 <Input
                   placeholder="Search chats..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="search-chat-input pl-9 pr-9"
+                  className="search-chat-input pl-9 pr-9 w-full"
                   aria-label="Search conversations"
-                  autoFocus={false}
+                  onBlur={() => {
+                    if (!searchQuery.trim()) {
+                      setIsSearchExpanded(false);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') {
+                      setSearchQuery("");
+                      setIsSearchExpanded(false);
+                    }
+                  }}
                 />
                 {searchQuery && (
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setSearchQuery("")}
+                    onClick={() => {
+                      setSearchQuery("");
+                      setIsSearchExpanded(false);
+                    }}
                     className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 rounded-full p-0 hover:bg-accent/10"
                     aria-label="Clear search"
                   >

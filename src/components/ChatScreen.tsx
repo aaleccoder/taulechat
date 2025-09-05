@@ -37,15 +37,13 @@ export default function ChatScreen() {
   }, [id]);
 
   return (
-    <div className="flex flex-col bg-background pb-4 transition-all duration-300 !overflow-hidden h-[90vh]">
-      <div className="w-full flex flex-col h-full transition-all duration-300 md:max-w-[60vw] mx-auto">
-        <div className="flex-1 overflow-y-auto" id="chat-messages-scroll-container">
-          <ChatMessages />
-        </div>
-        <div className="w-full md:max-w-[50vw] mx-auto transition-all duration-300 translate-y-0 opacity-100">
-          {/* @ts-ignore */}
-          <ChatInput id={id} />
-        </div>
+    <div className="">
+      <div className="flex flex-col bg-background h-screen overflow-hidden py-40">
+        <ChatMessages />
+      </div>
+      <div className="absolute bottom-0 w-full md:max-w-[60vw] mb-4 mx-auto px-2 flex-shrink-0">
+        {/* @ts-ignore */}
+        <ChatInput id={id} />
       </div>
     </div>
   );

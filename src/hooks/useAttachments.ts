@@ -3,6 +3,11 @@ import { toast } from "sonner";
 import { open as openFile } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 
+interface FileEntry {
+  path: string;
+  name?: string;
+}
+
 export function useAttachments(selectedModel: any) {
   const [attachments, setAttachments] = useState<{
     id: string;
@@ -30,8 +35,8 @@ export function useAttachments(selectedModel: any) {
     }
     
     const files = await openFile({ multiple: true, directory: false });
-    const paths = Array.isArray(files) ? files : files ? [files] : [];
-    if (paths.length === 0) return;
+    const fileEntries: (string | FileEntry)[] = Array.isArray(files) ? files : files ? [files] : [];
+    if (fileEntries.length === 0) return;
     
     const extToMime = (name: string) => {
       const lower = name.toLowerCase();
@@ -51,8 +56,9 @@ export function useAttachments(selectedModel: any) {
     
     // First, create loading placeholders for images
     const loadingPlaceholders: typeof attachments = [];
-    for (const p of paths) {
-      const fileName = (p as string).split(/[\\/]/).pop() || "file";
+    for (const entry of fileEntries) {
+      const path = typeof entry === 'object' && entry.path ? entry.path : entry as string;
+      const fileName = (typeof entry === 'object' && entry.name) ? entry.name : path.split(/[\\/]/).pop() || "file";
       const mimeType = extToMime(fileName);
       const isImage = mimeType.startsWith("image/");
       const isGemini = selectedModel?.provider === "Gemini";
@@ -87,9 +93,11 @@ export function useAttachments(selectedModel: any) {
     }
     
     // Process files asynchronously
-    const processFile = async (path: string, placeholderId?: string) => {
+    const processFile = async (entry: string | FileEntry, placeholderId?: string) => {
+      const path = typeof entry === 'object' && entry.path ? entry.path : entry as string;
+      const fileName = (typeof entry === 'object' && entry.name) ? entry.name : path.split(/[\\/]/).pop() || "file";
+      
       try {
-        const fileName = (path as string).split(/[\\/]/).pop() || "file";
         const mimeType = extToMime(fileName);
         const isImage = mimeType.startsWith("image/");
         
@@ -131,7 +139,7 @@ export function useAttachments(selectedModel: any) {
         
       } catch (err) {
         console.error("Failed reading file:", err);
-        toast.error(`Failed to load ${(path as string).split(/[\\/]/).pop()}`);
+        toast.error(`Failed to load ${fileName}`);
         
         // Remove the failed attachment
         if (placeholderId) {
@@ -145,8 +153,9 @@ export function useAttachments(selectedModel: any) {
     const processingPromises: Promise<any>[] = [];
     let placeholderIndex = 0;
     
-    for (const p of paths) {
-      const fileName = (p as string).split(/[\\/]/).pop() || "file";
+    for (const entry of fileEntries) {
+      const path = typeof entry === 'object' && entry.path ? entry.path : entry as string;
+      const fileName = (typeof entry === 'object' && entry.name) ? entry.name : path.split(/[\\/]/).pop() || "file";
       const mimeType = extToMime(fileName);
       const isImage = mimeType.startsWith("image/");
       const isGemini = selectedModel?.provider === "Gemini";
@@ -159,7 +168,7 @@ export function useAttachments(selectedModel: any) {
         ? loadingPlaceholders[placeholderIndex++]?.id 
         : undefined;
         
-      processingPromises.push(processFile(p, placeholderId));
+      processingPromises.push(processFile(entry, placeholderId));
       
       if (attachments.length + processingPromises.length >= 2) break;
     }

@@ -34,17 +34,22 @@
 
 @custom-variant dark (&:is(.dark *));
 
-body {
+html {
   overflow: hidden;
+  height: 100%;
+}
+
+body {
   padding: 0;
   margin: 0;
   font-family: "Sora", sans-serif;
-  padding-top: env(safe-area-inset-top)
+  overflow: hidden;
+  height: 100%;
 }
 
-@font-face {
-  font-family: "Sora", sans-serif;
-  src: url("./assets/fonts/Sora-VariableFont_wght.ttf");
+#root {
+  height: 100%;
+  overflow: hidden;
 }
 
 
@@ -325,7 +330,7 @@ body {
 }
 
 .model-list-container {
-  @apply px-4 pb-2 overflow-y-auto max-h-[40vh];
+  @apply px-4 pb-2 overflow-y-auto;
 }
 
 .no-models {
@@ -477,7 +482,8 @@ body {
 /* Reusable Tailwind classes for App Header */
 
 .app-header {
-  @apply flex items-center justify-between bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 py-3;
+  @apply flex items-center justify-between px-2 py-2;
+  padding-top: env(safe-area-inset-top);
 }
 
 .app-logo {

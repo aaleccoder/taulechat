@@ -51,11 +51,11 @@ export default function ModelPicker({
                     <DrawerTrigger asChild>
                         {triggerButton}
                     </DrawerTrigger>
-                    <DrawerContent className="h-[85vh] max-h-[85vh]">
-                        <DrawerHeader className="px-6 py-4 border-b">
+                    <DrawerContent className="flex flex-col max-h-[80vh]" >
+                        <DrawerHeader className="px-6 py-4 border-b flex-shrink-0">
                             <DrawerTitle className="text-lg font-semibold">Select Model</DrawerTitle>
                         </DrawerHeader>
-                        <div className="flex-1 overflow-hidden">
+                        <div className="flex-1 min-h-0 overflow-y-auto">
                             <ModelsList
                                 models={models}
                                 setSelectedModel={setSelectedModel}
@@ -64,26 +64,29 @@ export default function ModelPicker({
                             />
                         </div>
                     </DrawerContent>
-                </Drawer>
+                </Drawer >
             ) : (
                 <Popover open={open} onOpenChange={setOpen}>
                     <PopoverTrigger asChild>
                         {triggerButton}
                     </PopoverTrigger>
                     <PopoverContent
-                        className="model-picker-popover p-0 w-[90vw] max-w-4xl h-[80vh] max-h-[600px] border shadow-lg z-50 !bg-background"
+                        className="model-picker-popover p-0 w-[90vw] max-w-4xl h-[80vh] max-h-[80vh] border shadow-lg z-50 !bg-background flex flex-col"
                         side="top"
                         align="center"
                     >
-                        <ModelsList
-                            models={models}
-                            setSelectedModel={setSelectedModel}
-                            setOpen={setOpen}
-                            isMobile={false}
-                        />
+                        <div className="flex-1 min-h-0 overflow-y-auto">
+                            <ModelsList
+                                models={models}
+                                setSelectedModel={setSelectedModel}
+                                setOpen={setOpen}
+                                isMobile={false}
+                            />
+                        </div>
                     </PopoverContent>
                 </Popover>
-            )}
+            )
+            }
 
             <div className="flex items-center gap-1">
                 <Button
@@ -145,6 +148,6 @@ export default function ModelPicker({
                 onOpenChange={setParametersOpen}
                 selectedModel={selectedModel}
             />
-        </div>
+        </div >
     );
 }

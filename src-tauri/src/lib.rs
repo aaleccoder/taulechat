@@ -1,12 +1,21 @@
 use base64::{engine::general_purpose, Engine as _};
-use image::{DynamicImage, GenericImageView, ImageFormat, ImageReader};
+use image::{DynamicImage, GenericImageView, ImageReader};
 use std::fs;
 use std::io::Cursor;
+use std::path::PathBuf;
+use tauri::AppHandle;
+use tauri_plugin_fs::FsExt;
 use tauri_plugin_sql::{Migration, MigrationKind};
 
 #[tauri::command]
-fn read_and_encode_file(file_path: String) -> Result<String, String> {
-    let file_bytes = fs::read(&file_path).map_err(|e| e.to_string())?;
+async fn read_and_encode_file(app: AppHandle, file_path: String) -> Result<String, String> {
+    let file_bytes = if cfg!(target_os = "android") && file_path.starts_with("content://") {
+        app.fs()
+            .read(PathBuf::from(&file_path))
+            .map_err(|e| e.to_string())?
+    } else {
+        fs::read(&file_path).map_err(|e| e.to_string())?
+    };
 
     let encoded_string = general_purpose::STANDARD.encode(file_bytes);
 
@@ -14,11 +23,17 @@ fn read_and_encode_file(file_path: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-async fn read_and_optimize_image(file_path: String) -> Result<String, String> {
+async fn read_and_optimize_image(app: AppHandle, file_path: String) -> Result<String, String> {
+    let img_bytes = if cfg!(target_os = "android") && file_path.starts_with("content://") {
+        app.fs()
+            .read(PathBuf::from(&file_path))
+            .map_err(|e| e.to_string())?
+    } else {
+        fs::read(&file_path).map_err(|e| e.to_string())?
+    };
+
     // Run the CPU-intensive operation in a blocking task
     let result = tokio::task::spawn_blocking(move || -> Result<String, String> {
-        let img_bytes = fs::read(&file_path).map_err(|e| format!("Failed to read file: {}", e))?;
-
         let img = ImageReader::new(Cursor::new(&img_bytes))
             .with_guessed_format()
             .map_err(|e| format!("Failed to guess image format: {}", e))?
@@ -137,6 +152,7 @@ pub fn run() {
     }
     ];
     tauri::Builder::default()
+        .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_store::Builder::new().build())

@@ -20,7 +20,7 @@ export default function ChatMessages() {
 
   if (!messages || messages.length === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground h-full">
+      <div className="flex flex-col items-center justify-center text-muted-foreground h-full">
         <p className="text-sm">No messages yet. Start the conversation!</p>
       </div>
     );
@@ -28,7 +28,7 @@ export default function ChatMessages() {
 
   return (
     <TooltipProvider delayDuration={100}>
-      <div className={`flex flex-col space-y-2 w-full max-w-full transition-all duration-300 px-4 py-16`}>
+      <div className="flex flex-col space-y-2 w-full max-w-full transition-all duration-300 px-4 py-4 overflow-y-auto h-full">
         {messages.map((message, index) => {
           const imageFiles = (message.files || []).filter(f => f.mime_type.startsWith('image/'));
 
