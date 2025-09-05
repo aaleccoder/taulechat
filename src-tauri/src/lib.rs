@@ -1,3 +1,4 @@
+use base64::{engine::general_purpose, Engine as _};
 use std::fs;
 use tauri_plugin_sql::{Migration, MigrationKind};
 
@@ -5,7 +6,7 @@ use tauri_plugin_sql::{Migration, MigrationKind};
 fn read_and_encode_file(file_path: String) -> Result<String, String> {
     let file_bytes = fs::read(&file_path).map_err(|e| e.to_string())?;
 
-    let encoded_string = base64::encode(file_bytes);
+    let encoded_string = general_purpose::STANDARD.encode(file_bytes);
 
     Ok(encoded_string)
 }

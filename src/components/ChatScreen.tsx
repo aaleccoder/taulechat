@@ -2,7 +2,7 @@ import ChatInput from "./ChatInput";
 import ChatMessages from "./ChatMessages";
 import { useParams } from "react-router";
 import { useEffect } from "react";
-import { useStore, useUIVisibility } from "@/utils/state";
+import { useStore } from "@/utils/state";
 
 export default function ChatScreen() {
   const params = useParams<{ id: string }>();

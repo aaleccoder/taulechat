@@ -1,4 +1,3 @@
-import React from "react";
 import { Button } from "./ui/button";
 import { Clipboard } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
-import { getDefaultModel, saveDefaultModel } from "@/utils/store";
+import { getDefaultModel } from "@/utils/store";
 import { OpenRouterModel, GeminiModel } from "@/utils/state";
 
 export default function ModelsList({
@@ -32,19 +31,11 @@ export default function ModelsList({
 
     useEffect(() => {
         const loadDefaultModel = async () => {
+            console.log(defaultModel)
             setDefaultModel(await getDefaultModel());
         };
         loadDefaultModel();
     }, []);
-
-    const handleSaveDefaultModel = async (modelId: string) => {
-        if (modelId === defaultModel) {
-            toast.error("That's already the default model");
-            return;
-        }
-        await saveDefaultModel(modelId);
-        setDefaultModel(modelId);
-    };
 
     return (
         <div role="listbox" aria-label="Model picker" className="models-list">
@@ -88,7 +79,7 @@ export default function ModelsList({
                                     const name = (model as any).name || (model as any).displayName || (model as any).id;
                                     return name?.toLowerCase().includes(searchValue.toLowerCase());
                                 })
-                                .map((model, idx, arr) => {
+                                .map((model) => {
                                     const provider = (model as any)?.provider;
                                     const name = (model as any).name || (model as any).displayName || (model as any).id;
                                     const supportsImageInput = provider === "OpenRouter" && Array.isArray((model as any)?.architecture?.input_modalities) && (model as any).architecture.input_modalities.includes("image");

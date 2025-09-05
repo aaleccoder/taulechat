@@ -3,7 +3,6 @@ import {
   RateLimitError,
   PaymentRequiredError,
   ProviderResponseError,
-  NetworkError
 } from "@/providers/providers-service";
 import { ChatProvider, FormattedMessage, StreamRequest } from "./types";
 
@@ -26,7 +25,7 @@ export class GeminiProvider implements ChatProvider {
         }
         return { role: m.role === "assistant" ? "model" : "user", parts };
       }),
-      tools: [{"google_search": {}} ],
+      tools: [{"google_search": {}, "url_context": {}, "code_execution": {}} ],
     });
     const response = await fetch(url, {
       method: "POST",

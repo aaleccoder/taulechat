@@ -84,16 +84,6 @@ function createTitleFromPrompt(prompt: string) {
 }
 
 
-// Legacy HttpError for backward compatibility (can be removed once providers are refactored)
-class HttpError extends Error {
-  status: number;
-  constructor(message: string, status: number) {
-    super(message);
-    this.status = status;
-  }
-}
-
-
 
 export function useChatService() {
   const [text, setText] = useState("");

@@ -1,4 +1,3 @@
-import React from "react";
 import LinkPreviewTooltip from "./LinkPreviewTooltip";
 
 interface Chunk {

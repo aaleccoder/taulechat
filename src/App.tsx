@@ -9,9 +9,7 @@ import {
 import ChatScreen from "./components/ChatScreen";
 import AppSidebar from "./components/Sidebar";
 import SettingsScreen from "./components/Settings";
-import TestComponent from "./components/testcomponent";
 import Home from "./components/Home";
-import { Pen, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { saveOpenRouterModelsToStore, saveGeminiModelsToStore } from "./utils/store";
 import { fetch } from "@tauri-apps/plugin-http";
@@ -77,7 +75,6 @@ function App() {
               <Route path="/chat/:id" element={<ChatScreen />} />
               <Route path="/chat" element={<ChatScreen />} />
               <Route path="/settings" element={<SettingsScreen />} />
-              <Route path="/test" element={<TestComponent />} />
             </Routes>
           </main>
           <Toaster position="top-center" />

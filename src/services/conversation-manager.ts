@@ -1,6 +1,5 @@
-import { useStore, useSidebarConversation, useLoading, ChatMessage, MessageFile } from "@/utils/state";
+import { useStore, useSidebarConversation, ChatMessage, MessageFile } from "@/utils/state";
 import { createMessage, createMessageFile } from "@/lib/database/methods";
-import { toast } from "sonner";
 
 export async function initializeNewConversation(id: string, prompt: string, model_id: string) {
   await useStore.getState().createConversation(id, [], model_id, prompt);

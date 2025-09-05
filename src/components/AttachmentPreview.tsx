@@ -1,4 +1,3 @@
-import React from "react";
 import { useFilePreview } from "@/hooks/useFilePreview";
 
 interface FileType {

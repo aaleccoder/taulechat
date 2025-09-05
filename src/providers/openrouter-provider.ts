@@ -5,7 +5,6 @@ import {
   RateLimitError,
   PaymentRequiredError,
   ProviderResponseError,
-  NetworkError
 } from "@/providers/providers-service";
 
 export class OpenRouterProvider implements ChatProvider {

@@ -1,4 +1,3 @@
-import { toast } from "sonner";
 import { ChatProvider, FormattedMessage, StreamRequest } from "./types";
 
 export class GeminiImageProvider implements ChatProvider {
