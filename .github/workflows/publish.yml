@@ -108,7 +108,9 @@ jobs:
             ca-certificates \
             patchelf \
             pkgconf \
-            unzip
+            unzip \
+            fuse \
+            xdg-utils
       - uses: actions/checkout@v4
       - name: setup node
         uses: actions/setup-node@v4
