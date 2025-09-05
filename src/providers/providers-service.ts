@@ -11,6 +11,69 @@ import {
 } from "@/services/conversation-manager";
 import { toast } from "sonner";
 
+// Custom error classes for improved error handling
+export class ChatServiceError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ChatServiceError";
+  }
+}
+
+export class APIKeyError extends ChatServiceError {
+  constructor() {
+    super("Invalid or missing API key for this provider.");
+    this.name = "APIKeyError";
+  }
+}
+
+export class RateLimitError extends ChatServiceError {
+  constructor() {
+    super("You have exceeded the rate limit. Please try again later.");
+    this.name = "RateLimitError";
+  }
+}
+
+export class PaymentRequiredError extends ChatServiceError {
+  constructor(message?: string) {
+    super(message || "A payment is required to use this model.");
+    this.name = "PaymentRequiredError";
+  }
+}
+
+export class ProviderResponseError extends ChatServiceError {
+  constructor(message: string) {
+    super(message);
+    this.name = "ProviderResponseError";
+  }
+}
+
+export class NetworkError extends ChatServiceError {
+  constructor(message: string) {
+    super(message);
+    this.name = "NetworkError";
+  }
+}
+
+export function getErrorMessage(error: unknown): string {
+  if (error instanceof APIKeyError) {
+    return error.message;
+  }
+  if (error instanceof RateLimitError) {
+    return error.message;
+  }
+  if (error instanceof PaymentRequiredError) {
+    return error.message;
+  }
+  if (error instanceof ProviderResponseError) {
+    return `An API error occurred: ${error.message}`;
+  }
+  if (error instanceof NetworkError) {
+    return `Network error: ${error.message}`;
+  }
+  // Fallback for unexpected errors
+  return "An unexpected error occurred. Please check the console for details.";
+}
+
 
 function createTitleFromPrompt(prompt: string) {
   const maxLength = 50;
@@ -21,6 +84,7 @@ function createTitleFromPrompt(prompt: string) {
 }
 
 
+// Legacy HttpError for backward compatibility (can be removed once providers are refactored)
 class HttpError extends Error {
   status: number;
   constructor(message: string, status: number) {
@@ -64,18 +128,15 @@ export function useChatService() {
         const model = await getModelById(model_id);
         const supportsImages = !!model?.architecture?.input_modalities?.includes("image");
         const isGemini = model?.provider === "Gemini";
-  // const isOpenRouter = model?.provider === "OpenRouter";
-
+        // ...existing code...
         const active = useStore.getState().getConversation();
         if (active === null || active.id !== id) {
           isNewConversation = true;
           await initializeNewConversation(id, createTitleFromPrompt(prompt), model_id);
         }
-
-        // Store user message and attachments
-  await storeUserMessage(id, prompt, attachments);
-
-        // Add assistant placeholder (support files/images)
+        // ...existing code...
+        await storeUserMessage(id, prompt, attachments);
+        // ...existing code...
         const assistantID = crypto.randomUUID();
         useStore.getState().addMessage({
           id: assistantID,
@@ -85,14 +146,12 @@ export function useChatService() {
           created_at: new Date().toISOString(),
           files: [],
         });
-
-        // Format messages for provider
+        // ...existing code...
         const storeConversation = useStore.getState().getConversation();
         const storeMessages = storeConversation?.messages || [];
         const provider = await getChatProvider(model_id);
         const formattedMessages = provider.formatMessages(storeMessages, { supportsImages });
-
-        // Prepare attachments for Gemini
+        // ...existing code...
         let geminiParts: any[] = [{ text: prompt }];
         if (isGemini && attachments.length > 0) {
           for (const attachment of attachments) {
@@ -105,14 +164,12 @@ export function useChatService() {
             });
           }
         }
-
-        // Get API key
+        // ...existing code...
         const apiKey: string | null = (await getAPIKeyFromStore(
           isGemini ? ProviderName.Gemini : ProviderName.OpenRouter,
         )) ?? null;
         useSidebarConversation.getState().setActiveChat(id);
-
-        // Stream response from provider
+        // ...existing code...
         let reader;
         let generatedFiles: any[] = [];
         if (isGemini) {
@@ -129,16 +186,15 @@ export function useChatService() {
             apiKey,
           });
         }
-        if (!reader) throw new Error("Failed to get response reader");
+        if (!reader) throw new ProviderResponseError("Failed to get response reader");
         const decoder = new TextDecoder();
         let metadata: any = {};
         stream_loop: while (true) {
           const { done, value } = await reader.read();
           if (done) break;
           const { token, metadata: meta } = provider.parseStreamChunk(value, decoder);
-          // If images are present in metadata, handle them
+          // ...existing code...
           if (meta && meta.images && Array.isArray(meta.images)) {
-            // For each image, create a MessageFile entry
             generatedFiles = meta.images.map((img: any, idx: number) => ({
               id: crypto.randomUUID(),
               message_id: assistantID,
@@ -160,32 +216,14 @@ export function useChatService() {
         await finalizeAssistantMessage(assistantID, id, accumulated, isGemini ? { ...metadata, files: generatedFiles } : undefined);
       } catch (error: any) {
         console.error("Error sending prompt:", error);
-        if (typeof error?.message === "string" && error.message.includes("Imagen API is only accessible to billed users")) {
-          toast.error(error.message);
+        const errorMessage = getErrorMessage(error);
+        toast.error(errorMessage);
+        // Remove conversation only for non-rate-limit errors
+        if (!(error instanceof RateLimitError)) {
           if (isNewConversation) {
             useSidebarConversation.getState().removeConversation(id);
             useStore.getState().removeConversation();
           }
-        } else if (
-          (typeof error?.message === "string" && error.message.includes("Gemini error: 429"))
-        ) {
-          toast.error("You have hit the rate limit. Please try again later.");
-          useSidebarConversation.getState().removeConversation(id);
-          useStore.getState().removeConversation();
-        } else if (error instanceof HttpError) {
-          if (error.status === 401) {
-            toast.error(`Please provide a valid API key for this provider.`);
-            if (isNewConversation) {
-              useSidebarConversation.getState().removeConversation(id);
-              useStore.getState().removeConversation();
-            }
-          } else if (error.status === 429) {
-            toast.error("You have hit the rate limit. Please try again later.");
-            useSidebarConversation.getState().removeConversation(id);
-            useStore.getState().removeConversation();
-          }
-        } else {
-          toast.error("An unexpected error occurred. Please try again.");
         }
       } finally {
         useLoading.getState().setLoading(false);

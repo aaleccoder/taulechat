@@ -1,10 +1,10 @@
-class HttpError extends Error {
-  status: number;
-  constructor(message: string, status: number) {
-    super(message);
-    this.status = status;
-  }
-}
+import {
+  APIKeyError,
+  RateLimitError,
+  PaymentRequiredError,
+  ProviderResponseError,
+  NetworkError
+} from "@/providers/providers-service";
 import { ChatProvider, FormattedMessage, StreamRequest } from "./types";
 
 export class GeminiProvider implements ChatProvider {
@@ -33,15 +33,23 @@ export class GeminiProvider implements ChatProvider {
     });
       if (!response.ok) {
         let errorMsg = `Gemini error: ${response.status}`;
-        if (response.status === 400) {
-          try {
-            const errJson = await response.json();
-            if (errJson?.error?.message) {
-              errorMsg = errJson.error.message;
-            }
-          } catch {}
+        let errJson;
+        try {
+          errJson = await response.json();
+        } catch {}
+        if (errJson?.error?.message) {
+          errorMsg = errJson.error.message;
         }
-        throw new HttpError(errorMsg, response.status);
+        switch (response.status) {
+          case 401:
+            throw new APIKeyError();
+          case 429:
+            throw new RateLimitError();
+          case 402:
+            throw new PaymentRequiredError(errorMsg);
+          default:
+            throw new ProviderResponseError(errorMsg);
+        }
       }
     if (!response.body) throw new Error("Gemini response missing body stream");
     return response.body.getReader();

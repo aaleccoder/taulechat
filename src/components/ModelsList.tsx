@@ -91,7 +91,8 @@ export default function ModelsList({
                                 .map((model, idx, arr) => {
                                     const provider = (model as any)?.provider;
                                     const name = (model as any).name || (model as any).displayName || (model as any).id;
-                                    const supportsImage = provider === "OpenRouter" && Array.isArray((model as any)?.architecture?.input_modalities) && (model as any).architecture.input_modalities.includes("image");
+                                    const supportsImageInput = provider === "OpenRouter" && Array.isArray((model as any)?.architecture?.input_modalities) && (model as any).architecture.input_modalities.includes("image");
+                                    const supportsImageOutput = provider === "OpenRouter" && Array.isArray((model as any)?.architecture?.output_modalities) && (model as any).architecture.output_modalities.includes("image");
                                     const showLabel = provider !== lastProvider;
                                     lastProvider = provider;
                                     return (
@@ -114,9 +115,14 @@ export default function ModelsList({
                                                 onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { setOpen(false); setSelectedModel(model); } }}
                                             >
                                                 <span className="model-name">{name}</span>
-                                                {supportsImage && (
+                                                {supportsImageInput && (
                                                     <span className="image-badge" title="Supports image input">
                                                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-blue-500"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="2" /><circle cx="8.5" cy="13.5" r="2.5" stroke="currentColor" strokeWidth="2" /><path d="M21 19l-5-6-4 5-3-4-4 5" stroke="currentColor" strokeWidth="2" /></svg>
+                                                    </span>
+                                                )}
+                                                {supportsImageOutput && (
+                                                    <span className="image-badge" title="Supports image output">
+                                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-green-500"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="2" /><circle cx="15.5" cy="13.5" r="2.5" stroke="currentColor" strokeWidth="2" /><path d="M3 19l5-6 4 5 3-4 4 5" stroke="currentColor" strokeWidth="2" /></svg>
                                                     </span>
                                                 )}
                                             </div>
