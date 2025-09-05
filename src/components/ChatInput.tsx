@@ -8,7 +8,6 @@ import { toast } from "sonner";
 import ModelPicker from "./ModelPicker";
 import AttachmentStrip from "./AttachmentStrip";
 import { useAttachments } from "@/hooks/useAttachments";
-import { getProviderIconSvg } from "@/utils/providerIcon";
 
 export default function ChatInput({ id }: { id: string }) {
   const [userInput, setUserInput] = useState("");

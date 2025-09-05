@@ -24,24 +24,27 @@ bun tauri build
 *   **LaTeX Rendering:** Write and render LaTeX expressions.
 *   **Syntax Highlighting:** Code blocks are highlighted for better readability.
 *   **Image Uploading:** Upload images to use with multimodal models on OpenRouter and Gemini.
-*   **Model Picker:** Switch between different models from the supported providers.
+*   **Image Lightbox:** View uploaded and generated images in a full-screen lightbox.
+*   **Model Picker:** Switch between different models from the supported providers, with provider icons.
+*   **Customizable Model Parameters:** Adjust model settings for both Gemini and OpenRouter.
 *   **Link Preview:** Tooltips for link previews.
-*   **Multi-select:** Functionality in the sidebar.
-*   **Usage Metadata:** Display of usage metadata.
+*   **Multi-select:** Functionality in the sidebar for batch actions on conversations.
+*   **Usage Metadata:** Display of usage metadata for model responses.
 *   **Search:** Search functionality for conversations.
 *   **Message Stats:** View statistics about your messages from Gemini.
 *   **Grounding Search:** Grounding search with citations and link previews via Gemini.
+*   **"Thoughts" Display:** View the model's internal thought process with a collapsible component.
 *   **Android Support:** Full-fledged support for Android devices, on par with desktop.
 *   **Providers:**
     *   Gemini
     *   OpenRouter
 
 ## Roadmap
-*   **Image Generation:** Add support for image generation models(you can pick a model but the image wont get rendered back).
 *   **UI/UX Enhancements:** Continuously improve the user interface and experience.
 *   **Message Branching:** Create and manage different conversation branches.
 *   **Local LLM Support:** Support for running local LLMs (pending hardware availability for testing that i do not have right now).
 *   **Theme Support:** Customize the look and feel of the app with themes.
+*   **Enhanced Image Generation:** Improve rendering and interaction with generated images.
 
 ## Contributions
 
