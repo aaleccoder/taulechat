@@ -36,6 +36,12 @@ pub fn run() {
             role            TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
             content         TEXT NOT NULL,
             tokens_used     INTEGER,                -- optional: for token counting
+            grounding_chunks TEXT,                  -- JSON string
+            grounding_supports TEXT,                -- JSON string
+            web_search_queries TEXT,                -- JSON string
+            usage_metadata TEXT,                    -- JSON string
+            model_version TEXT,
+            response_id TEXT,
             created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
         );
         ",

@@ -19,7 +19,6 @@ export default function ChatMessages() {
   const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Get the parent scroll container instead of the messages container
     const scrollContainer = document.getElementById('chat-messages-scroll-container');
     if (!scrollContainer) return;
 
@@ -36,7 +35,6 @@ export default function ChatMessages() {
       }
 
       if (isAtBottom) {
-        // Show UI elements when at the bottom
         setHeaderVisible(true);
         setChatInputVisible(true);
         setChatExpanded(false);
@@ -85,6 +83,20 @@ export default function ChatMessages() {
   return (
     <div className={`flex flex-col space-y-2 w-full max-w-full transition-all duration-300 px-4 py-16`}>
       {messages.map((message, index) => {
+        // Inline citation rendering for assistant messages
+        let renderedContent = message.content;
+        if (message.role === "assistant" && message.groundingSupports && Array.isArray(message.groundingSupports)) {
+          // Sort supports by startIndex descending to avoid index shifting
+          const supportsSorted = [...message.groundingSupports].sort((a, b) => b.segment.startIndex - a.segment.startIndex);
+          supportsSorted.forEach((support) => {
+            const indices = (support.groundingChunkIndices as number[]).map((i: number) => i + 1); // 1-based
+            const citation = indices.length > 0 ? `[${indices.join(",")}]` : "";
+            renderedContent =
+              renderedContent.slice(0, support.segment.endIndex) +
+              citation +
+              renderedContent.slice(support.segment.endIndex);
+          });
+        }
         if (message.role === "user") {
           return (
             <div
@@ -123,7 +135,7 @@ export default function ChatMessages() {
                   } min-w-0`}
               >
                 <Markdown
-                  children={message.content}
+                  children={renderedContent}
                   remarkPlugins={[remarkGfm, remarkMath]}
                   rehypePlugins={[rehypeKatex]}
                   components={{
@@ -179,7 +191,7 @@ export default function ChatMessages() {
                 variant="ghost"
                 size="icon"
                 className="p-0 opacity-50 hover:opacity-100"
-                onClick={() => handleCopyToClipboard(message.content)}
+                onClick={() => handleCopyToClipboard(renderedContent)}
               >
                 <Clipboard />
               </Button>
@@ -276,6 +288,84 @@ export default function ChatMessages() {
                     },
                   }}
                 />
+              )}
+              {/* Usage Metadata UI for assistant message */}
+              {message.role === "assistant" && message.usageMetadata && (
+                <div
+                  className="mt-2 mb-1 px-4 py-2 rounded-xl border bg-card/70 shadow-sm flex flex-col gap-1 text-xs text-muted-foreground"
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    maxWidth: 'fit-content',
+                    minWidth: '180px',
+                    borderColor: 'var(--border)',
+                    background: 'var(--card)',
+                    boxShadow: 'var(--shadow-sm)',
+                  }}
+                  aria-label="Token usage details"
+                  role="contentinfo"
+                >
+                  <div className="font-semibold text-foreground mb-1">Token Usage</div>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="rounded-full bg-muted px-2 py-1" title="Prompt tokens">
+                      Prompt: <span className="font-mono">{message.usageMetadata.promptTokenCount}</span>
+                    </span>
+                    <span className="rounded-full bg-muted px-2 py-1" title="Candidates tokens">
+                      Candidates: <span className="font-mono">{message.usageMetadata.candidatesTokenCount}</span>
+                    </span>
+                    <span className="rounded-full bg-muted px-2 py-1" title="Total tokens">
+                      Total: <span className="font-mono">{message.usageMetadata.totalTokenCount}</span>
+                    </span>
+                    <span className="rounded-full bg-muted px-2 py-1" title="Cached content tokens">
+                      Cached: <span className="font-mono">{message.usageMetadata.cachedContentTokenCount}</span>
+                    </span>
+                  </div>
+                  <div className="mt-1">
+                    <span className="font-semibold">Prompt Details:</span>
+                    <ul className="list-disc ml-4">
+                      {message.usageMetadata.promptTokensDetails?.map((detail: any, i: number) => (
+                        <li key={i}>
+                          <span className="font-mono">{detail.modality}</span>: <span className="font-mono">{detail.tokenCount}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
+              {/* Grounding sources UI for assistant message */}
+              {message.role === "assistant" && message.groundingChunks && message.groundingChunks.length > 0 && (
+                <div
+                  className="mt-2 mb-1 px-4 py-2 rounded-xl border bg-card/70 shadow-sm flex flex-col gap-1 text-xs text-muted-foreground"
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    maxWidth: 'fit-content',
+                    minWidth: '180px',
+                    borderColor: 'var(--border)',
+                    background: 'var(--card)',
+                    boxShadow: 'var(--shadow-sm)',
+                  }}
+                  aria-label="Sources"
+                  role="contentinfo"
+                >
+                  <div className="font-semibold text-foreground mb-1">Sources</div>
+                  <ol className="list-decimal ml-4">
+                    {message.groundingChunks.map((chunk: any, i: number) => (
+                      <li key={i}>
+                        {chunk.web?.title ? (
+                          <a
+                            href={chunk.web.uri}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline text-accent hover:text-accent-foreground"
+                          >
+                            {chunk.web.title}
+                          </a>
+                        ) : (
+                          <span>{chunk.web?.uri}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
               )}
               <Button
                 variant="ghost"

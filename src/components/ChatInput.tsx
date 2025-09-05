@@ -75,7 +75,7 @@ export default function ChatInput({ id }: { id: string }) {
       }
     };
     loadModels();
-  }, [id, conversationModelId, selectedModel]);
+  }, [id, conversationModelId]);
 
   useEffect(() => {
     if (!open) {
@@ -130,11 +130,6 @@ export default function ChatInput({ id }: { id: string }) {
       toast.error("Select a model first");
       return;
     }
-    const isOpenRouter = (selectedModel as any)?.provider === "OpenRouter";
-    if (!isOpenRouter) {
-      toast.error("Attachments are supported only for OpenRouter models");
-      return;
-    }
 
     const files = await openFile({
       multiple: true,
@@ -172,8 +167,9 @@ export default function ChatInput({ id }: { id: string }) {
         const fileName = (p as string).split(/[/\\]/).pop() || "file";
         const mimeType = extToMime(fileName);
         const isImage = mimeType.startsWith("image/");
+        const isGemini = (selectedModel as any)?.provider === "Gemini";
 
-        if (isImage && !supportsImages) {
+        if (isImage && !supportsImages && !isGemini) {
           toast.error("This model doesn't support image input");
           continue;
         }

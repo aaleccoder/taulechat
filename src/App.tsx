@@ -12,7 +12,7 @@ import SettingsScreen from "./components/Settings";
 import TestComponent from "./components/testcomponent";
 import Home from "./components/Home";
 import { Pen, Plus } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { saveOpenRouterModelsToStore, saveGeminiModelsToStore } from "./utils/store";
 import { fetch } from "@tauri-apps/plugin-http";
 import { Toaster } from "./components/ui/sonner";
@@ -40,10 +40,12 @@ function App() {
 
     fetchData();
   }, []);
+  const [open, setOpen] = useState(false);
+
 
   return (
     <ThemeProvider defaultTheme="dark">
-      <SidebarProvider>
+      <SidebarProvider open={open} onOpenChange={setOpen}>
         <AppSidebar />
         <SidebarInset>
           <header className={`app-header transition-all duration-300 ${isHeaderVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'

@@ -9,10 +9,8 @@ class MainActivity : TauriActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
-    // Allow content to extend under the system bars
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
-        // Get the insets controller to manage system UI
         val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
 
         // Hide both status bar and navigation bar

@@ -29,8 +29,35 @@ export function deleteConversation(id: string) {
 
 // ------------------------- Messages CRUD -------------------------
 
-export function createMessage(id: string, conversation_id: string, role: ChatMessage['role'], content: string, tokens_used?: number) {
-    return db.execute("INSERT INTO messages (id, conversation_id, role, content, tokens_used) VALUES ($1, $2, $3, $4, $5)", [id, conversation_id, role, content, tokens_used]);
+export function createMessage(
+    id: string,
+    conversation_id: string,
+    role: ChatMessage['role'],
+    content: string,
+    tokens_used?: number,
+    grounding_chunks?: string | null,
+    grounding_supports?: string | null,
+    web_search_queries?: string | null,
+    usage_metadata?: string | null,
+    model_version?: string | null,
+    response_id?: string | null
+) {
+    return db.execute(
+        "INSERT INTO messages (id, conversation_id, role, content, tokens_used, grounding_chunks, grounding_supports, web_search_queries, usage_metadata, model_version, response_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
+        [
+            id,
+            conversation_id,
+            role,
+            content,
+            tokens_used,
+            grounding_chunks,
+            grounding_supports,
+            web_search_queries,
+            usage_metadata,
+            model_version,
+            response_id
+        ]
+    );
 }
 
 export function getMessage(id: string) {
@@ -55,7 +82,6 @@ export function deleteMessage(id: string) {
     return db.execute("DELETE FROM messages WHERE id = $1", [id]);
 }
 
-// ------------------------- Message Files CRUD -------------------------
 
 export function createMessageFile(
     id: string,

@@ -15,9 +15,14 @@ export type ChatMessage = {
     content: string;
     tokens_used?: number;
     created_at: string;
-    files?: MessageFile[]; // optional attachments associated to this message
-};
-
+    files?: MessageFile[];
+    groundingChunks?: any[];
+    groundingSupports?: any[];
+    webSearchQueries?: string[];
+    usageMetadata?: any;
+    modelVersion?: string;
+    responseId?: string;
+}
 export type MessageFile = {
     id: string;
     message_id: string;
@@ -65,6 +70,7 @@ export type SidebarDataState = {
     addConversation: (conversation: Omit<ConversationState, 'messages'>) => void;
     addConversations: (conversations: Omit<ConversationState, 'messages'>[]) => void;
     removeConversation: (conversationId: string) => void;
+    removeConversations: (conversationIds: string[]) => void;
     updateConversation: (conversation: Omit<ConversationState, 'messages'>) => void;
 }
 
@@ -80,7 +86,7 @@ export type ChatConversationsState = {
     removeConversation: () => void;
 
     addMessage: (message: ChatMessage) => void;
-    updateMessage: (messageId: string, content: string) => void;
+    updateMessage: (messageId: string, patch: Partial<ChatMessage> | string) => void;
     removeMessage: (messageId: string) => void;
     setMessages: (messages: ChatMessage[]) => void;
 
@@ -164,7 +170,18 @@ export const useStore = create<ChatConversationsState>((set, get) => ({
                 (Array.isArray(rawMessages) ? rawMessages : []).map(async (m) => {
                     try {
                         const files = await getFilesForMessage(m.id);
-                        return { ...m, files: Array.isArray(files) ? files : [] } as ChatMessage;
+                        // Parse Gemini fields from DB JSON columns (use type assertion for raw DB result)
+                        const dbRow = m as any;
+                        return {
+                            ...m,
+                            files: Array.isArray(files) ? files : [],
+                            groundingChunks: dbRow.grounding_chunks ? JSON.parse(dbRow.grounding_chunks) : undefined,
+                            groundingSupports: dbRow.grounding_supports ? JSON.parse(dbRow.grounding_supports) : undefined,
+                            webSearchQueries: dbRow.web_search_queries ? JSON.parse(dbRow.web_search_queries) : undefined,
+                            usageMetadata: dbRow.usage_metadata ? JSON.parse(dbRow.usage_metadata) : undefined,
+                            modelVersion: dbRow.model_version,
+                            responseId: dbRow.response_id,
+                        } as ChatMessage;
                     } catch {
                         return { ...m, files: [] } as ChatMessage;
                     }
@@ -215,10 +232,22 @@ export const useStore = create<ChatConversationsState>((set, get) => ({
                 : state.conversation,
         })),
 
-    updateMessage: (messageId: string, content: string) =>
+    updateMessage: (messageId: string, patch: Partial<ChatMessage> | string) =>
         set((state) => ({
             conversation: state.conversation
-                ? { ...state.conversation, messages: (state.conversation.messages ?? []).map((m) => (m.id === messageId ? { ...m, content } : m)) }
+                ? {
+                    ...state.conversation,
+                    messages: (state.conversation.messages ?? []).map((m) => {
+                        if (m.id === messageId) {
+                            if (typeof patch === "string") {
+                                return { ...m, content: patch };
+                            } else {
+                                return { ...m, ...patch };
+                            }
+                        }
+                        return m;
+                    })
+                }
                 : state.conversation,
         })),
 
@@ -256,6 +285,20 @@ export const useSidebarConversation = create<SidebarDataState>((set) => ({
             }));
         } catch (error) {
             console.error("Error removing conversation:", error);
+        }
+    },
+
+    removeConversations: async (conversationIds) => {
+        try {
+            // Assuming deleteConversation can handle an array or we loop
+            for (const id of conversationIds) {
+                await deleteConversation(id);
+            }
+            set((state) => ({
+                conversations: state.conversations.filter((c) => !conversationIds.includes(c.id))
+            }));
+        } catch (error) {
+            console.error("Error removing multiple conversations:", error);
         }
     },
 

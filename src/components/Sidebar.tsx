@@ -5,36 +5,116 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
-  SidebarHeader,
   SidebarMenu,
-  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
-import { styles } from "@/constants/style";
 import { getAllConversations } from "@/lib/database/methods";
 import { useSidebarConversation, useStore } from "@/utils/state";
-import { MessageCircle, MoreHorizontal, Search, Settings, Trash, X } from "lucide-react";
+import { MoreHorizontal, Search, Trash, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
-import { DialogClose } from "@radix-ui/react-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from "./ui/dialog";
 import { toast } from "sonner";
+import { useLongPress } from "@/hooks/useLongPress";
+import { Checkbox } from "./ui/checkbox";
+
+type SidebarChatItemProps = {
+  chat: Omit<import("@/utils/state").ConversationState, 'messages'>;
+  isMultiSelectMode: boolean;
+  isSelected: boolean;
+  onToggleSelection: (chatId: string) => void;
+  onLongPress: (chatId: string) => void;
+  onClick: (chatId: string, event: React.MouseEvent | React.TouchEvent) => void;
+  onDelete: (chatId: string) => void;
+};
+
+const SidebarChatItem: React.FC<SidebarChatItemProps> = ({
+  chat,
+  isMultiSelectMode,
+  isSelected,
+  onToggleSelection,
+  onLongPress,
+  onClick,
+  onDelete,
+}) => {
+  const longPressProps = useLongPress({
+    onLongPress: () => onLongPress(chat.id),
+    onClick: (e) => onClick(chat.id, e),
+  });
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onDelete(chat.id);
+  };
+
+  const isActiveChat = useSidebarConversation((state) => state.activeChat) === chat.id;
+
+  return (
+    <SidebarMenuItem
+      key={chat.id}
+      className={`flex items-center gap-2 rounded-md transition-colors hover:bg-accent/20 ${isActiveChat ? 'bg-accent/10' : ''}`}
+      aria-label={`Chat: ${chat.title || 'New chat'}`}
+      {...longPressProps}
+    >
+      {isMultiSelectMode && (
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={() => onToggleSelection(chat.id)}
+          className="mr-2"
+          aria-label={`Select chat: ${chat.title || 'New chat'}`}
+        />
+      )}
+      <div className="flex-1 min-w-0 flex items-center">
+        <span className="truncate text-foreground select-none px-2">
+          {chat.title || "New chat"}
+        </span>
+      </div>
+      {!isMultiSelectMode && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 rounded-full p-0 motion-safe:transition-all motion-safe:duration-150 hover:bg-accent/10 active:scale-95 focus-visible:ring-2 focus-visible:ring-accent/50"
+              onClick={(e) => e.stopPropagation()}
+              aria-label="Chat actions"
+            >
+              <MoreHorizontal className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="right" align="start" className="sidebar-dropdown-content">
+            <DropdownMenuItem
+              onClick={handleDelete}
+              className="sidebar-dropdown-item"
+              aria-label="Delete chat"
+            >
+              <Trash className="h-4 w-4 mr-2" aria-hidden="true" />
+              <span className="w-full">Delete</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </SidebarMenuItem>
+  );
+};
 
 
 export default function AppSidebar() {
-
+  const { setOpenMobile } = useSidebar();
   const navigate = useNavigate();
 
   const conversations = useSidebarConversation((state) => state.conversations) || [];
 
-  const activeChat = useSidebarConversation((state) => state.activeChat || null);
+  const [multiDeleteDialogOpen, setMultiDeleteDialogOpen] = useState(false);
+  const [multiSelectMode, setMultiSelectMode] = useState(false);
+  const [multiSelectedChats, setMultiSelectedChats] = useState<string[]>([]);
 
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [chatToDelete, setChatToDelete] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredConversations = conversations.filter((chat) =>
@@ -43,21 +123,66 @@ export default function AppSidebar() {
 
 
   const handleChatClick = (chatId: string) => {
-    useSidebarConversation.getState().setActiveChat(chatId);
-    navigate(`/chat/${chatId}`);
-  };
-
-  const handleChatDelete = (chatId: string | null) => {
-    if (chatId) {
-      if (chatId == useStore.getState().conversation?.id) {
-        useStore.getState().setConversation(null);
-        navigate("/");
-      }
-      setDeleteDialogOpen(false);
-      useSidebarConversation.getState().removeConversation(chatId);
-      toast("Chat has been deleted successfully.");
+    if (multiSelectMode) {
+      toggleMultiChatSelection(chatId);
+    } else {
+      useSidebarConversation.getState().setActiveChat(chatId);
+      navigate(`/chat/${chatId}`);
+      setOpenMobile(false); // Close the sidebar on mobile when a chat is clicked
     }
   };
+
+  const handleDeleteClick = (chatId: string) => {
+    setMultiSelectMode(true);
+    setMultiSelectedChats([chatId]);
+  }
+
+  const handleDeleteMultipleChats = () => {
+    const activeConversation = useStore.getState().conversation;
+    if (activeConversation && multiSelectedChats.includes(activeConversation.id)) {
+      useStore.getState().setConversation(null);
+      navigate("/");
+    }
+    useSidebarConversation.getState().removeConversations(multiSelectedChats);
+    toast(`${multiSelectedChats.length} chat(s) have been deleted successfully.`);
+    setMultiSelectMode(false);
+    setMultiSelectedChats([]);
+    setMultiDeleteDialogOpen(false);
+  };
+
+  const toggleMultiChatSelection = (chatId: string) => {
+    setMultiSelectedChats((prev) =>
+      prev.includes(chatId)
+        ? prev.filter((id) => id !== chatId)
+        : [...prev, chatId]
+    );
+  };
+
+  const handleLongPress = (chatId: string) => {
+    if (!multiSelectMode) {
+      setMultiSelectMode(true);
+      setMultiSelectedChats([chatId]);
+    }
+  };
+
+  const handleItemClick = (chatId: string, event: React.MouseEvent | React.TouchEvent) => {
+    if (event.type === 'click' && (event as React.MouseEvent).ctrlKey) {
+      if (!multiSelectMode) {
+        setMultiSelectMode(true);
+      }
+      toggleMultiChatSelection(chatId);
+    } else if (!multiSelectMode) {
+      handleChatClick(chatId);
+    } else {
+      toggleMultiChatSelection(chatId);
+    }
+  };
+
+  useEffect(() => {
+    if (multiSelectedChats.length === 0 && multiSelectMode) {
+      setMultiSelectMode(false);
+    }
+  }, [multiSelectedChats, multiSelectMode]);
 
   useEffect(() => {
     let mounted = true;
@@ -77,13 +202,13 @@ export default function AppSidebar() {
   }, []);
 
   return (
-
     <Sidebar variant="inset" className="">
       <SidebarContent className="">
         <SidebarGroup>
-          <SidebarGroupLabel className="sidebar-group-label">Chats</SidebarGroupLabel>
+          <SidebarGroupLabel className="sidebar-group-label px-2">
+            {multiSelectMode ? `${multiSelectedChats.length} selected` : "Chats"}
+          </SidebarGroupLabel>
           <SidebarGroupContent>
-            {/* Search input */}
             <div className="px-2 mb-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
@@ -107,7 +232,7 @@ export default function AppSidebar() {
                 )}
               </div>
             </div>
-            <SidebarMenu>
+            <SidebarMenu className="flex flex-col gap-1 px-2">
               {filteredConversations.length === 0 && conversations.length > 0 && (
                 <div className="text-muted-foreground text-sm text-center select-none px-2" aria-live="polite">
                   <span className="block text-lg mb-2">🔍</span>
@@ -123,50 +248,44 @@ export default function AppSidebar() {
                 </div>
               )}
               {filteredConversations.length > 0 && filteredConversations.map((chat) => (
-                <SidebarMenuItem
+                <SidebarChatItem
                   key={chat.id}
-                  className="sidebar-menu-item group flex items-center gap-2"
-                  aria-label={`Open chat: ${chat.title || 'New chat'}`}
-                >
-                  <SidebarMenuButton
-                    onClick={() => handleChatClick(chat.id)}
-                    className={`chat-list-btn flex-1 min-w-0 ${chat.id === activeChat ? ' chat-list-btn-active' : ''}`}
-                    aria-label={chat.title || 'New chat'}
-                  >
-                    <span className="truncate text-foreground group-hover:text-accent motion-safe:transition-colors">
-                      {chat.title || "New chat"}
-                    </span>
-                  </SidebarMenuButton>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <SidebarMenuAction
-                        className="sidebar-action-btn opacity-0 group-hover:opacity-100 flex items-center justify-center"
-                        aria-label="Chat actions"
-                      >
-                        <MoreHorizontal className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-                      </SidebarMenuAction>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent side="top" align="end" className="sidebar-dropdown-content">
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setChatToDelete(chat.id);
-                          setDeleteDialogOpen(true);
-                        }}
-                        className="sidebar-dropdown-item"
-                        aria-label="Delete chat"
-                      >
-                        <Trash className="h-4 w-4 mr-2" aria-hidden="true" />
-                        <span className="w-full">Delete</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </SidebarMenuItem>
+                  chat={chat}
+                  isMultiSelectMode={multiSelectMode}
+                  isSelected={multiSelectedChats.includes(chat.id)}
+                  onToggleSelection={toggleMultiChatSelection}
+                  onLongPress={handleLongPress}
+                  onClick={handleItemClick}
+                  onDelete={handleDeleteClick}
+                />
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="sidebar-footer">
+        {multiSelectMode && multiSelectedChats.length > 0 && (
+          <div className="p-2 flex flex-col gap-2">
+            <Button
+              variant="destructive"
+              className="w-full"
+              onClick={() => setMultiDeleteDialogOpen(true)}
+            >
+              <Trash className="h-4 w-4 mr-2" />
+              Delete ({multiSelectedChats.length})
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() => {
+                setMultiSelectMode(false);
+                setMultiSelectedChats([]);
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        )}
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
@@ -187,19 +306,26 @@ export default function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <Dialog open={multiDeleteDialogOpen} onOpenChange={setMultiDeleteDialogOpen}>
         <DialogContent className="sidebar-dialog-content">
           <DialogHeader>
             <DialogTitle className="sidebar-dialog-title">Are you sure?</DialogTitle>
             <DialogDescription className="sidebar-dialog-description">
-              This action cannot be undone. This will permanently delete the chat.
+              This will permanently delete the {multiSelectedChats.length} selected chat(s).
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="sidebar-dialog-footer">
             <DialogClose asChild>
               <Button variant="outline" className="sidebar-dialog-btn" aria-label="Cancel">Cancel</Button>
             </DialogClose>
-            <Button variant="destructive" className="sidebar-dialog-btn" onClick={() => handleChatDelete(chatToDelete)} aria-label="Delete chat">Delete</Button>
+            <Button
+              variant="destructive"
+              className="sidebar-dialog-btn"
+              onClick={handleDeleteMultipleChats}
+              aria-label="Delete"
+            >
+              Delete
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

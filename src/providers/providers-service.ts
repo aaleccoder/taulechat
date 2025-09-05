@@ -26,7 +26,7 @@ class HttpError extends Error {
 
 export function useOpenRouter() {
   const [text, setText] = useState("");
-  const [loading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   type SelectedAttachment = {
     id: string;
@@ -48,6 +48,8 @@ export function useOpenRouter() {
 
   const sendPrompt = useCallback(
     async (id: string, prompt: string, model_id: string, attachments: SelectedAttachment[] = []) => {
+      if (loading) return; // Prevent re-entry
+      setLoading(true);
       const model = await getModelById(model_id);
       const isGemini = model?.provider === "Gemini";
       const isOpenRouter = model?.provider === "OpenRouter";
@@ -96,8 +98,8 @@ export function useOpenRouter() {
         await createMessage(userMessage.id, id, "user", userMessage.content);
 
         if (attachments.length > 0) {
-          if (!isOpenRouter) {
-            toast.error("Attachments are only supported for OpenRouter models.");
+          if (!isOpenRouter && !isGemini) {
+            toast.error("Attachments are only supported for OpenRouter and Gemini models.");
           } else {
             for (const a of attachments.slice(0, 2)) {
               try {
@@ -142,15 +144,126 @@ export function useOpenRouter() {
           isGemini ? ProviderName.Gemini : ProviderName.OpenRouter,
         );
         useSidebarConversation.getState().setActiveChat(id);
-        const response = await fetch(
-          isGemini
-            ? "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
-            : "https://openrouter.ai/api/v1/chat/completions",
+        if (isGemini) {
+          const headers: Record<string, string> = {
+            "Content-Type": "application/json",
+          };
+          if (apiKey) {
+            headers["x-goog-api-key"] = apiKey;
+          }
+          
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model_id.split("/")[1]}:streamGenerateContent?alt=sse`;
+          
+          const parts: any[] = [{ text: prompt }];
+
+          if (attachments.length > 0) {
+            for (const attachment of attachments) {
+              if (attachment.mimeType === "application/pdf") {
+                const base64 = uint8ToBase64(attachment.bytes);
+                parts.push({
+                  inline_data: {
+                    mime_type: "application/pdf",
+                    data: base64,
+                  },
+                });
+              } else if (attachment.mimeType.startsWith("image/")) {
+                const base64 = uint8ToBase64(attachment.bytes);
+                parts.push({
+                  inline_data: {
+                    mime_type: attachment.mimeType,
+                    data: base64,
+                  },
+                });
+              }
+            }
+          }
+
+          const body = JSON.stringify({
+            contents: [
+              {
+                parts: parts,
+              },
+            ],
+            tools: [
+              {
+                "google_search": {}
+              }
+            ]
+          });
+          const response = await fetch(url, {
+            method: "POST",
+            headers,
+            body,
+          });
+          if (!response.ok) {
+            if (response.status === 404) {
+              toast.error("The selected Gemini model does not exist.");
+              setLoading(false);
+              useLoading.getState().setLoading(false);
+              return;
+            }
+            throw new HttpError(`Gemini API error! status: ${response.status}`, response.status);
+          }
+          const reader = response.body?.getReader();
+          if (!reader) {
+            throw new Error("Failed to get Gemini response reader");
+          }
+          const decoder = new TextDecoder();
+          gemini_stream_loop: while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split("\n").filter((line) => line.startsWith("data: "));
+            for (const line of lines) {
+              const jsonStr = line.replace("data: ", "").trim();
+              if (jsonStr === "[DONE]") break gemini_stream_loop;
+              try {
+                const parsed = JSON.parse(jsonStr);
+                const token = parsed?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                accumulated += token;
+                setText(accumulated);
+                // Save Gemini fields for final DB update
+                assistantMessage.groundingChunks = parsed?.candidates?.[0]?.groundingMetadata?.groundingChunks;
+                assistantMessage.groundingSupports = parsed?.candidates?.[0]?.groundingMetadata?.groundingSupports;
+                assistantMessage.webSearchQueries = parsed?.webSearchQueries;
+                assistantMessage.usageMetadata = parsed?.usageMetadata;
+                assistantMessage.modelVersion = parsed?.modelVersion;
+                assistantMessage.responseId = parsed?.responseId;
+                useStore.getState().updateMessage(assistantID, {
+                  content: accumulated,
+                  groundingChunks: assistantMessage.groundingChunks,
+                  groundingSupports: assistantMessage.groundingSupports,
+                  webSearchQueries: assistantMessage.webSearchQueries,
+                  usageMetadata: assistantMessage.usageMetadata,
+                  modelVersion: assistantMessage.modelVersion,
+                  responseId: assistantMessage.responseId,
+                });
+              } catch (error) {
+                console.error("Failed to parse Gemini stream chunk:", error);
+              }
+            }
+          }
+          await createMessage(
+            assistantID,
+            id,
+            "assistant",
+            accumulated,
+            undefined,
+            JSON.stringify(assistantMessage.groundingChunks ?? null),
+            JSON.stringify(assistantMessage.groundingSupports ?? null),
+            JSON.stringify(assistantMessage.webSearchQueries ?? null),
+            JSON.stringify(assistantMessage.usageMetadata ?? null),
+            assistantMessage.modelVersion ?? null,
+            assistantMessage.responseId ?? null
+          );
+        } else {
+          const response = await fetch(
+            "https://openrouter.ai/api/v1/chat/completions",
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${apiKey}`,
+              Authorization: `Bearer ${apiKey || ""}`,
             },
             body: JSON.stringify({
               model: model_id,
@@ -200,8 +313,11 @@ export function useOpenRouter() {
             }
           }
         }
+        }
 
-        await createMessage(assistantID, id, "assistant", accumulated);
+        if (!isGemini) {
+          await createMessage(assistantID, id, "assistant", accumulated);
+        }
       } catch (error) {
         console.error("Error sending prompt:", error);
         if (error instanceof HttpError) {
@@ -220,14 +336,17 @@ export function useOpenRouter() {
             useSidebarConversation.getState().removeConversation(id);
             useStore.getState().removeConversation();
           }
+          useLoading.getState().setLoading(false);
         } else {
+          useLoading.getState().setLoading(false);
           toast.error("An unexpected error occurred. Please try again.");
         }
       } finally {
         useLoading.getState().setLoading(false);
+        setLoading(false);
       }
     },
-    [],
+    [loading],
   );
 
   return { text, loading, sendPrompt };
