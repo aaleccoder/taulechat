@@ -5,6 +5,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import ModelsList from "./ModelsList";
 import ModelParameters from "./ModelParameters";
 import { useState } from "react";
+import { getProviderIconSvg } from "@/utils/providerIcon";
 
 
 
@@ -33,8 +34,9 @@ export default function ModelPicker({
             aria-label="Select model"
         >
             {selectedModel ? (
-                <span className="truncate">
-                    {selectedModel.name || selectedModel.displayName || selectedModel.id}
+                <span className="truncate flex flex-row">
+                    {getProviderIconSvg(selectedModel?.id ?? "")}
+                    <p className="ml-2">{selectedModel.name || selectedModel.displayName || selectedModel.id}</p>
                 </span>
             ) : (
                 <>+ Select model</>
