@@ -96,10 +96,8 @@ export default function ChatMessages() {
         {messages.map((message, index) => {
           let renderedContent = message.content;
           if (message.role === "assistant" && message.groundingSupports && Array.isArray(message.groundingSupports) && message.groundingChunks) {
-            // Clean up any existing malformed citations first
             renderedContent = renderedContent.replace(/\s*\[(\d+)\]\([^)]*\s*"[^"]*"\)\s*/g, '');
 
-            // Process supports in reverse order (end to beginning) to maintain correct indices
             const supportsSorted = [...message.groundingSupports].sort((a, b) => b.segment.endIndex - a.segment.endIndex);
 
             supportsSorted.forEach((support) => {
@@ -138,10 +136,16 @@ export default function ChatMessages() {
                       let preview: string | undefined;
                       if (isImage) {
                         try {
+                          let byteCharacters = f.data;
+                          if (typeof f.data === 'string') {
+                            byteCharacters = JSON.parse(f.data);
+                          }
                           // @ts-ignore
-                          const blob = new Blob([f.data], { type: f.mime_type });
+                          const blob = new Blob([new Uint8Array(byteCharacters)], { type: f.mime_type });
                           preview = URL.createObjectURL(blob);
-                        } catch { }
+                        } catch (e) {
+                          console.error("Error creating image preview:", e)
+                        }
                       }
                       return (
                         <div key={f.id} className="border rounded-lg p-2 bg-card w-fit max-w-[50%] min-w-0">
@@ -240,10 +244,16 @@ export default function ChatMessages() {
                       let preview: string | undefined;
                       if (isImage) {
                         try {
+                          let byteCharacters = f.data;
+                          if (typeof f.data === 'string') {
+                            byteCharacters = JSON.parse(f.data);
+                          }
                           // @ts-ignore
-                          const blob = new Blob([f.data], { type: f.mime_type });
+                          const blob = new Blob([new Uint8Array(byteCharacters)], { type: f.mime_type });
                           preview = URL.createObjectURL(blob);
-                        } catch { }
+                        } catch (e) {
+                          console.error("Error creating image preview:", e)
+                        }
                       }
                       return (
                         <div key={f.id} className="border rounded-lg p-2 bg-card w-fit max-w-[50%] min-w-0">
