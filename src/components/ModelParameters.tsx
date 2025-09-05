@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { OpenRouterModel, GeminiModel, ModelParameters as ModelParametersType, useStore } from "@/utils/state";
 import { getModelParameters, saveModelParameters, removeModelParameters } from "@/utils/store";
+import { useIsMobile } from "@/hooks/use-mobile";
 import OpenRouterParametersForm from "./forms/OpenRouterParametersForm";
 
 interface ModelParametersProps {
@@ -17,8 +19,8 @@ export default function ModelParameters({
 }: ModelParametersProps) {
     const [parameters, setParameters] = useState<ModelParametersType>({});
     const { setModelParameters, getModelParameters: getStoreParameters } = useStore();
+    const isMobile = useIsMobile();
 
-    // Load parameters when the drawer opens or model changes
     useEffect(() => {
         if (open && selectedModel?.id) {
             const loadParameters = async () => {
@@ -82,36 +84,52 @@ export default function ModelParameters({
 
     const isOpenRouterModel = selectedModel?.provider === "OpenRouter";
 
-    return (
-        <Drawer open={open} onOpenChange={onOpenChange}>
-            <DrawerContent className="max-h-[90vh]">
-                <DrawerHeader>
-                    <DrawerTitle>Model Parameters</DrawerTitle>
-                </DrawerHeader>
-
-                <div className="overflow-y-auto">
-                    {selectedModel?.id && isOpenRouterModel ? (
-                        <OpenRouterParametersForm
-                            model={selectedModel as OpenRouterModel}
-                            initialParameters={parameters}
-                            onSave={handleSave}
-                            onReset={handleReset}
-                        />
-                    ) : selectedModel && !isOpenRouterModel ? (
-                        <div className="p-4 text-center">
-                            <p className="text-muted-foreground">
-                                Parameter configuration is not yet available for {selectedModel.provider} models.
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="p-4 text-center">
-                            <p className="text-muted-foreground">
-                                Please select a model to configure its parameters.
-                            </p>
-                        </div>
-                    )}
+    const content = (
+        <div className="overflow-y-auto">
+            {selectedModel?.id && isOpenRouterModel ? (
+                <OpenRouterParametersForm
+                    model={selectedModel as OpenRouterModel}
+                    initialParameters={parameters}
+                    onSave={handleSave}
+                    onReset={handleReset}
+                />
+            ) : selectedModel && !isOpenRouterModel ? (
+                <div className="p-4 text-center">
+                    <p className="text-muted-foreground">
+                        Parameter configuration is not yet available for {selectedModel.provider} models.
+                    </p>
                 </div>
-            </DrawerContent>
-        </Drawer>
+            ) : (
+                <div className="p-4 text-center">
+                    <p className="text-muted-foreground">
+                        Please select a model to configure its parameters.
+                    </p>
+                </div>
+            )}
+        </div>
+    );
+
+    if (isMobile) {
+        return (
+            <Drawer open={open} onOpenChange={onOpenChange}>
+                <DrawerContent className="max-h-[90vh]">
+                    <DrawerHeader>
+                        <DrawerTitle>Model Parameters</DrawerTitle>
+                    </DrawerHeader>
+                    {content}
+                </DrawerContent>
+            </Drawer>
+        );
+    }
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                    <DialogTitle>Model Parameters</DialogTitle>
+                </DialogHeader>
+                {content}
+            </DialogContent>
+        </Dialog>
     );
 }
