@@ -107,7 +107,8 @@ jobs:
             git \
             ca-certificates \
             patchelf \
-            pkgconf
+            pkgconf \
+            unzip
       - uses: actions/checkout@v4
       - name: setup node
         uses: actions/setup-node@v4
