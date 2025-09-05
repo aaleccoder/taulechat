@@ -13,7 +13,6 @@ export default function ChatMessages() {
   const loading = useLoading((state) => state.loading);
   const { isChatExpanded } = useUIVisibility();
 
-  // All hooks at top level
   const handleCopyToClipboard = useCallback((content: string) => {
     navigator.clipboard.writeText(content);
     toast.success("Copied to clipboard!");

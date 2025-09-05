@@ -134,6 +134,7 @@ export function useChatService() {
           conversation_id: id,
           created_at: new Date().toISOString(),
           files: [],
+          streaming: true,
         });
         // ...existing code...
         const storeConversation = useStore.getState().getConversation();

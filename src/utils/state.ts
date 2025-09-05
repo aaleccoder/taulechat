@@ -23,6 +23,7 @@ export type ChatMessage = {
     usageMetadata?: any;
     modelVersion?: string;
     responseId?: string;
+    streaming?: boolean;
 }
 export type MessageFile = {
     id: string;
@@ -193,9 +194,10 @@ export const useStore = create<ChatConversationsState>((set, get) => ({
                             usageMetadata: dbRow.usage_metadata ? JSON.parse(dbRow.usage_metadata) : undefined,
                             modelVersion: dbRow.model_version,
                             responseId: dbRow.response_id,
+                            streaming: false, // Messages loaded from DB are complete
                         } as ChatMessage;
                     } catch {
-                        return { ...m, files: [] } as ChatMessage;
+                        return { ...m, files: [], streaming: false } as ChatMessage;
                     }
                 })
             );

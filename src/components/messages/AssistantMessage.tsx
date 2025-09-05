@@ -6,6 +6,7 @@ import LoadingUI from "../loading";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "../ui/collapsible";
 import { useState, memo } from "react";
 import MemoizedMarkdown from "../markdown/MemoizedMarkdown";
+import RawTextStreaming from "../animations/RawTextStreaming";
 
 const AssistantMessage = memo(function AssistantMessage({ message, isChatExpanded, handleCopyToClipboard, loading }: any) {
     let renderedContent = message.content;
@@ -72,13 +73,15 @@ const AssistantMessage = memo(function AssistantMessage({ message, isChatExpande
                             </span>
                         </span>
                     </CollapsibleTrigger>
-                    <CollapsibleContent className="mt-2 rounded-lg border bg-background px-3 py-2 shadow-md text-muted-foreground text-sm whitespace-pre-wrap motion-safe:transition-shadow" aria-label="Assistant thought process">
+                    <CollapsibleContent className="mt-2 rounded-lg border bg-background px-3 py-2 shadow-md text-muted-foreground text-sm whitespace-pre-wrap overflow-hidden blind-animate" aria-label="Assistant thought process">
                         <pre className="font-mono text-xs leading-5 whitespace-pre-wrap break-words">{message.thoughts}</pre>
                     </CollapsibleContent>
                 </Collapsible>
             )}
             {loading && !message.content ? (
                 <LoadingUI />
+            ) : message.streaming ? (
+                <RawTextStreaming text={renderedContent} className="text-foreground" />
             ) : (
                 <MemoizedMarkdown content={renderedContent} onCopy={handleCopyToClipboard} />
             )}

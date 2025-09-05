@@ -36,11 +36,15 @@ export async function storeUserMessage(conversationId: string, prompt: string, a
 }
 
 export function streamAssistantMessageUpdate(assistantId: string, content: string, metadata?: any, thoughts?: string) {
-  const updateData = metadata ? { content, thoughts, ...metadata } : { content, thoughts };
+  const updateData = metadata ? { content, thoughts, streaming: true, ...metadata } : { content, thoughts, streaming: true };
   useStore.getState().updateMessage(assistantId, updateData);
 }
 
 export async function finalizeAssistantMessage(assistantId: string, conversationId: string, content: string, metadata?: any, thoughts?: string) {
+  // Mark the message as no longer streaming
+  const finalUpdateData = metadata ? { content, thoughts, streaming: false, ...metadata } : { content, thoughts, streaming: false };
+  useStore.getState().updateMessage(assistantId, finalUpdateData);
+  
   await createMessage(
     assistantId,
     conversationId,

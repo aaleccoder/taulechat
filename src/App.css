@@ -1,3 +1,32 @@
+/* Blind open/close animation for CollapsibleContent */
+/* Improved blind open/close animation for CollapsibleContent */
+.blind-animate {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  will-change: max-height, opacity;
+  transition:
+    max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.3s 0.1s ease;
+}
+
+.blind-animate[data-state="open"] {
+  max-height: 1000px;
+  /* Large enough for any content */
+  opacity: 1;
+  transition:
+    max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.3s ease;
+}
+
+.blind-animate[data-state="closed"] {
+  max-height: 0;
+  opacity: 0;
+  transition:
+    max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.3s 0.1s ease;
+}
+
 /* Reusable Tailwind classes for Sidebar component */
 
 @import "tailwindcss";
