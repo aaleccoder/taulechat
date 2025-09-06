@@ -71,7 +71,6 @@ export default function GeminiToolsPicker({ selectedTools, onToolsChange, disabl
     const hasDefaultTools = defaultTools.length > 0;
 
     const buttonSize = compact ? "sm" : "sm";
-    const buttonClass = compact ? "h-7 text-xs" : "h-8";
 
     return (
         <Popover open={open} onOpenChange={setOpen}>

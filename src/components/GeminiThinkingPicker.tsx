@@ -18,12 +18,11 @@ const thinkingOptions = [
     { value: false, label: 'Off', description: 'Hide internal reasoning for faster responses' }
 ];
 
-export default function GeminiThinkingPicker({ thinkingEnabled, setThinkingEnabled, disabled, compact = false }: GeminiThinkingPickerProps) {
+export default function GeminiThinkingPicker({ thinkingEnabled, setThinkingEnabled, disabled }: GeminiThinkingPickerProps) {
     const [open, setOpen] = useState(false);
     const isMobile = useIsMobile();
 
     // Use compact for styling adjustments
-    const triggerClass = compact ? "h-7 text-xs px-2" : "h-8 px-3";
 
     const currentOption = thinkingOptions.find(option => option.value === thinkingEnabled);
 

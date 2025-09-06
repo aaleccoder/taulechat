@@ -16,7 +16,7 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Separator } from "./ui/separator";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from "./ui/drawer";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "./ui/drawer";
 import { useState } from "react";
 
 interface GeminiUsageMetadata {
