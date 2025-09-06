@@ -44,7 +44,7 @@ function App() {
       <SidebarProvider open={open} onOpenChange={setOpen}>
         <AppSidebar />
         <SidebarInset>
-          <header className={`app-header absolute top-0 left-0 right-0 z-30 border-b bg-background/80 backdrop-blur-sm transition-all duration-300
+          <header className={`app-header absolute top-0 left-0 right-0 z-30 border-b bg-background/80 backdrop-blur-sm transition-all duration-300 mt-2
             }`}>
             <SidebarTrigger className="sidebar-trigger-button" />
 
