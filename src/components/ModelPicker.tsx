@@ -34,12 +34,23 @@ export default function ModelPicker({
             aria-label="Select model"
         >
             {selectedModel ? (
-                <span className="truncate flex flex-row">
-                    {getProviderIconSvg(selectedModel?.id ?? "")}
-                    <p className="ml-2">{selectedModel.name || selectedModel.displayName || selectedModel.id}</p>
-                </span>
+                <div className="truncate flex items-center min-w-0 w-full">
+                    <div className="flex-shrink-0">
+                        {getProviderIconSvg(selectedModel?.id ?? "")}
+                    </div>
+                    <div className="ml-2 truncate min-w-0 flex-1">
+                        <span className="block truncate text-sm">
+                            {selectedModel.name || selectedModel.displayName || selectedModel.id}
+                        </span>
+                        {selectedModel.id && selectedModel.id !== (selectedModel.name || selectedModel.displayName) && (
+                            <span className="block truncate text-xs text-muted-foreground">
+                                {selectedModel.id}
+                            </span>
+                        )}
+                    </div>
+                </div>
             ) : (
-                <>+ Select model</>
+                <span className="text-sm">+ Select model</span>
             )}
         </Button>
     );

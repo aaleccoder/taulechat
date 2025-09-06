@@ -59,4 +59,30 @@ export async function finalizeAssistantMessage(assistantId: string, conversation
     metadata ? metadata.responseId ?? null : undefined,
     thoughts || null
   );
+
+  // Save generated files (images) to database
+  if (metadata?.files && Array.isArray(metadata.files)) {
+    for (const file of metadata.files) {
+      try {
+        // Convert base64 string to Uint8Array for database storage
+        const base64Data = file.data;
+        const binaryString = atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        
+        await createMessageFile(
+          file.id,
+          file.message_id,
+          file.file_name,
+          file.mime_type,
+          bytes,
+          file.size
+        );
+      } catch (e) {
+        console.error("Failed to save generated file:", e);
+      }
+    }
+  }
 }

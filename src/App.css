@@ -1,13 +1,10 @@
 /* Blind open/close animation for CollapsibleContent */
 /* Improved blind open/close animation for CollapsibleContent */
-.blind-animate {
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  will-change: max-height, opacity;
-  transition:
-    max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-    opacity 0.3s 0.1s ease;
+
+.model-select-btn {
+  @apply h-auto min-h-[2.5rem] rounded-full px-3 py-1.5 truncate flex-1 transition-all duration-150 hover:bg-accent/10 active:scale-[0.98];
+  max-width: 100%;
+  min-width: 0;
 }
 
 .blind-animate[data-state="open"] {
@@ -121,13 +118,13 @@ body {
   --popover: #45475a;
   --popover-foreground: #cdd6f4;
   --primary: #cba6f7;
-  --primary-foreground: rgb(88, 88, 88);
+  --primary-foreground: #1e1e2e;
   --secondary: #585b70;
   --secondary-foreground: #cdd6f4;
   --muted: #292c3c;
   --muted-foreground: #a6adc8;
   --accent: #b4a1fa;
-  --accent-foreground: #cdd6f4;
+  --accent-foreground: #1e1e2e;
   --destructive: #f38ba8;
   --destructive-foreground: #1e1e2e;
   --border: #313244;
@@ -241,12 +238,11 @@ body {
   padding-bottom: var(--safe-area-bottom);
 }
 
-.model-picker-row {
-  @apply mb-2 flex items-center gap-2;
-}
-
-.model-select-btn {
-  @apply h-10 rounded-full px-3 truncate max-w-full flex-1 transition-all duration-150 hover:bg-accent/10 active:scale-[0.98];
+@media (max-width: 640px) {
+  .model-picker-container {
+    max-width: 160px;
+    min-width: 120px;
+  }
 }
 
 .star-btn {

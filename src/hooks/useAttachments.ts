@@ -54,7 +54,6 @@ export function useAttachments(selectedModel: any) {
     
     const supportsImages = !!selectedModel?.architecture?.input_modalities?.includes("image");
     
-    // First, create loading placeholders for images
     const loadingPlaceholders: typeof attachments = [];
     for (const entry of fileEntries) {
       const path = typeof entry === 'object' && entry.path ? entry.path : entry as string;
@@ -67,6 +66,8 @@ export function useAttachments(selectedModel: any) {
         toast.error("This model doesn't support image input");
         continue;
       }
+
+      console.log(path);
       
       if (isImage) {
         // Create a loading placeholder for images
@@ -86,13 +87,11 @@ export function useAttachments(selectedModel: any) {
       if (attachments.length + loadingPlaceholders.length >= 2) break;
     }
     
-    // Add loading placeholders immediately
     if (loadingPlaceholders.length > 0) {
       setAttachments(prev => [...prev, ...loadingPlaceholders].slice(0, 2));
       setIsProcessing(true);
     }
     
-    // Process files asynchronously
     const processFile = async (entry: string | FileEntry, placeholderId?: string) => {
       const path = typeof entry === 'object' && entry.path ? entry.path : entry as string;
       const fileName = (typeof entry === 'object' && entry.name) ? entry.name : path.split(/[\\/]/).pop() || "file";
@@ -105,11 +104,9 @@ export function useAttachments(selectedModel: any) {
         let finalMimeType = mimeType;
         
         if (isImage) {
-          // Use the optimized image function (now async)
           base64 = await invoke<string>("read_and_optimize_image", { filePath: path });
           finalMimeType = "image/jpeg";
         } else {
-          // Use regular file reading for non-images
           base64 = await invoke<string>("read_and_encode_file", { filePath: path });
         }
         
@@ -128,7 +125,6 @@ export function useAttachments(selectedModel: any) {
           isLoading: false,
         };
         
-        // Update the specific attachment
         setAttachments(prev => 
           prev.map(att => 
             att.id === placeholderId ? processedAttachment : att
@@ -141,7 +137,6 @@ export function useAttachments(selectedModel: any) {
         console.error("Failed reading file:", err);
         toast.error(`Failed to load ${fileName}`);
         
-        // Remove the failed attachment
         if (placeholderId) {
           setAttachments(prev => prev.filter(att => att.id !== placeholderId));
         }
@@ -149,7 +144,6 @@ export function useAttachments(selectedModel: any) {
       }
     };
     
-    // Process all files
     const processingPromises: Promise<any>[] = [];
     let placeholderIndex = 0;
     
@@ -173,7 +167,6 @@ export function useAttachments(selectedModel: any) {
       if (attachments.length + processingPromises.length >= 2) break;
     }
     
-    // Wait for all processing to complete
     try {
       await Promise.all(processingPromises);
     } finally {

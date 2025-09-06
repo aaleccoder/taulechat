@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getAllConversations } from "@/lib/database/methods";
 import { useSidebarConversation, useStore } from "@/utils/state";
-import { MoreHorizontal, Search, Trash, X } from "lucide-react";
+import { MessageCircle, MoreHorizontal, Search, Trash, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "./ui/button";
@@ -211,8 +211,12 @@ export default function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent className="pt-[env(safe-area-inset-top)]">
             <div className="px-2 mb-3 relative h-10">
-              <div className={`flex items-center gap-2 motion-safe:transition-all motion-safe:duration-300 ${isSearchExpanded ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-                <div className="flex-1" />
+              {/* App header with bubble icon - disappears when search is expanded */}
+              <div className={`flex items-center justify-between motion-safe:transition-all motion-safe:duration-300 ${isSearchExpanded ? 'opacity-0 pointer-events-none -translate-y-2' : 'opacity-100 translate-y-0'}`}>
+                <div className="flex items-center gap-2">
+                  <MessageCircle className="h-5 w-5 text-accent" aria-hidden="true" />
+                  <h1 className="text-lg font-semibold text-foreground select-none">TauleChat</h1>
+                </div>
                 <Button
                   variant="ghost"
                   size="icon"

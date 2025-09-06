@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dark Theme Color Contrast Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #181825;
+            color: #cdd6f4;
+        }
+
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #313244;
+            border-radius: 8px;
+        }
+
+        .color-test {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+
+        .contrast-ratio {
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .pass {
+            color: #a6e3a1;
+        }
+
+        .fail {
+            color: #f38ba8;
+        }
+
+        .warning {
+            color: #fab387;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>TauLeChat Dark Theme Color Contrast Analysis</h1>
+
+    <div class="test-section">
+        <h2>Color Variables from .dark theme:</h2>
+        <div id="color-variables"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Contrast Test Results:</h2>
+        <div id="contrast-results"></div>
+    </div>
+
+    <script>
+        // Dark theme color variables
+        const darkThemeColors = {
+            'background': '#181825',
+            'foreground': '#cdd6f4',
+            'card': '#1e1e2e',
+            'card-foreground': '#cdd6f4',
+            'popover': '#45475a',
+            'popover-foreground': '#cdd6f4',
+            'primary': '#cba6f7',
+            'primary-foreground': '#1e1e2e',
+            'secondary': '#585b70',
+            'secondary-foreground': '#cdd6f4',
+            'muted': '#292c3c',
+            'muted-foreground': '#a6adc8',
+            'accent': '#b4a1fa',
+            'accent-foreground': '#1e1e2e',
+            'destructive': '#f38ba8',
+            'destructive-foreground': '#1e1e2e',
+            'border': '#313244',
+            'input': '#313244',
+            'ring': '#cba6f7',
+            'sidebar': '#11111b',
+            'sidebar-foreground': '#cdd6f4',
+            'sidebar-primary': '#cba6f7',
+            'sidebar-primary-foreground': '#1e1e2e',
+            'sidebar-accent': '#89dceb',
+            'sidebar-accent-foreground': '#1e1e2e',
+            'sidebar-border': '#45475a'
+        };
+
+        // Convert hex/rgb to RGB values
+        function parseColor(color) {
+            if (color.startsWith('#')) {
+                const hex = color.slice(1);
+                return {
+                    r: parseInt(hex.slice(0, 2), 16),
+                    g: parseInt(hex.slice(2, 4), 16),
+                    b: parseInt(hex.slice(4, 6), 16)
+                };
+            } else if (color.startsWith('rgb')) {
+                const values = color.match(/\d+/g);
+                return {
+                    r: parseInt(values[0]),
+                    g: parseInt(values[1]),
+                    b: parseInt(values[2])
+                };
+            }
+            return null;
+        }
+
+        // Calculate relative luminance
+        function getLuminance(color) {
+            const rgb = parseColor(color);
+            if (!rgb) return 0;
+
+            const rsRGB = rgb.r / 255;
+            const gsRGB = rgb.g / 255;
+            const bsRGB = rgb.b / 255;
+
+            const r = rsRGB <= 0.03928 ? rsRGB / 12.92 : Math.pow((rsRGB + 0.055) / 1.055, 2.4);
+            const g = gsRGB <= 0.03928 ? gsRGB / 12.92 : Math.pow((gsRGB + 0.055) / 1.055, 2.4);
+            const b = bsRGB <= 0.03928 ? bsRGB / 12.92 : Math.pow((bsRGB + 0.055) / 1.055, 2.4);
+
+            return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        }
+
+        // Calculate contrast ratio
+        function getContrastRatio(color1, color2) {
+            const lum1 = getLuminance(color1);
+            const lum2 = getLuminance(color2);
+            const lighter = Math.max(lum1, lum2);
+            const darker = Math.min(lum1, lum2);
+            return (lighter + 0.05) / (darker + 0.05);
+        }
+
+        // Test color combinations
+        const colorCombinations = [
+            // Main text combinations
+            { bg: 'background', fg: 'foreground', context: 'Main background text' },
+            { bg: 'card', fg: 'card-foreground', context: 'Card text' },
+            { bg: 'popover', fg: 'popover-foreground', context: 'Popover text' },
+            { bg: 'primary', fg: 'primary-foreground', context: 'Primary button text' },
+            { bg: 'secondary', fg: 'secondary-foreground', context: 'Secondary button text' },
+            { bg: 'muted', fg: 'muted-foreground', context: 'Muted text' },
+            { bg: 'accent', fg: 'accent-foreground', context: 'Accent button text' },
+            { bg: 'destructive', fg: 'destructive-foreground', context: 'Destructive button text' },
+            { bg: 'sidebar', fg: 'sidebar-foreground', context: 'Sidebar text' },
+            { bg: 'sidebar-primary', fg: 'sidebar-primary-foreground', context: 'Sidebar primary button text' },
+            { bg: 'sidebar-accent', fg: 'sidebar-accent-foreground', context: 'Sidebar accent button text' },
+
+            // Additional important combinations
+            { bg: 'background', fg: 'muted-foreground', context: 'Muted text on background' },
+            { bg: 'card', fg: 'muted-foreground', context: 'Muted text on card' },
+            { bg: 'input', fg: 'foreground', context: 'Input text' },
+        ];
+
+        function displayColorVariables() {
+            const container = document.getElementById('color-variables');
+            let html = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">';
+
+            for (const [name, color] of Object.entries(darkThemeColors)) {
+                html += `<div style="background: ${color}; padding: 10px; border-radius: 4px; border: 1px solid #313244;">
+                    <strong>${name}</strong><br>
+                    <code>${color}</code>
+                </div>`;
+            }
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function runContrastTests() {
+            const container = document.getElementById('contrast-results');
+            let html = '';
+
+            colorCombinations.forEach(combo => {
+                const bgColor = darkThemeColors[combo.bg];
+                const fgColor = darkThemeColors[combo.fg];
+
+                if (!bgColor || !fgColor) {
+                    html += `<div class="color-test" style="background: #2a2a2a;">
+                        <strong>${combo.context}</strong><br>
+                        <span class="fail">❌ Missing color definition</span>
+                    </div>`;
+                    return;
+                }
+
+                const ratio = getContrastRatio(bgColor, fgColor);
+                const isAANormal = ratio >= 4.5;
+                const isAALarge = ratio >= 3.0;
+                const isAAANormal = ratio >= 7.0;
+
+                let status, statusClass;
+                if (isAAANormal) {
+                    status = '✅ AAA Normal (Excellent)';
+                    statusClass = 'pass';
+                } else if (isAANormal) {
+                    status = '✅ AA Normal (Good)';
+                    statusClass = 'pass';
+                } else if (isAALarge) {
+                    status = '⚠️ AA Large Text Only';
+                    statusClass = 'warning';
+                } else {
+                    status = '❌ Fails WCAG Guidelines';
+                    statusClass = 'fail';
+                }
+
+                html += `<div class="color-test" style="background: ${bgColor}; color: ${fgColor};">
+                    <strong>${combo.context}</strong><br>
+                    Background: ${combo.bg} (${bgColor}) | Foreground: ${combo.fg} (${fgColor})<br>
+                    <span class="contrast-ratio ${statusClass}">Contrast Ratio: ${ratio.toFixed(2)}:1 - ${status}</span>
+                </div>`;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Run tests when page loads
+        document.addEventListener('DOMContentLoaded', function () {
+            displayColorVariables();
+            runContrastTests();
+        });
+    </script>
+</body>
+
+</html>

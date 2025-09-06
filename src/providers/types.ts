@@ -1,4 +1,4 @@
-import { ChatMessage } from "@/utils/state";
+import { ChatMessage, GeminiTool } from "@/utils/state";
 
 export type FormattedMessage = {
   role: string;
@@ -11,6 +11,7 @@ export interface StreamRequest {
   apiKey: string | null;
   attachments?: any[];
   parameters?: ModelParameters;
+  modelInfo?: any; // Add model information
 }
 
 export interface ModelParameters {
@@ -28,6 +29,8 @@ export interface ModelParameters {
   // Gemini-specific parameters
   candidate_count?: number;
   stop_sequences?: string[];
+  gemini_tools?: GeminiTool[];
+  gemini_thinking?: boolean;
   
   // Advanced parameters
   seed?: number;
@@ -46,6 +49,7 @@ export interface ModelParameters {
   route?: 'fallback';
   provider?: any;
   user?: string;
+  reasoningLevel?: 'low' | 'medium' | 'high';
   
   // Tool calling
   tools?: any[];

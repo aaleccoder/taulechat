@@ -1,4 +1,5 @@
 import { ChatProvider, FormattedMessage, StreamRequest } from "./types";
+import { getBase64FromData } from "@/lib/utils";
 
 import {
   APIKeyError,
@@ -9,27 +10,14 @@ import {
 
 export class OpenRouterProvider implements ChatProvider {
   formatMessages(messages: any[], options?: { supportsImages?: boolean }): FormattedMessage[] {
-    function uint8ToBase64(u8: Uint8Array) {
-      let binary = "";
-      const chunk = 0x8000;
-      for (let i = 0; i < u8.length; i += chunk) {
-        binary += String.fromCharCode.apply(null, Array.from(u8.subarray(i, i + chunk)));
-      }
-      return btoa(binary);
-    }
     return messages.map((m: any) => {
       if (m.role === "user" && (m.files?.length || 0) > 0) {
         const parts: any[] = [];
         if (m.content?.trim()) parts.push({ type: "text", text: m.content });
         if (options?.supportsImages) {
           for (const f of m.files!.slice(0, 2)) {
-            if (f.mime_type.startsWith("image/")) {
-              let b64 = "";
-              if (typeof f.data === "string") {
-                b64 = f.data;
-              } else if (f.data instanceof Uint8Array) {
-                b64 = uint8ToBase64(f.data);
-              }
+            if (f.mime_type.startsWith("image/") && options?.supportsImages) {
+              const b64 = getBase64FromData(f.data);
               parts.push({ type: "image_url", image_url: { url: `data:${f.mime_type};base64,${b64}` } });
             }
           }
@@ -57,6 +45,16 @@ export class OpenRouterProvider implements ChatProvider {
     // Add parameters if provided
     if (request.parameters) {
       const params = request.parameters;
+      
+      // Handle reasoning level
+      if (params.reasoningLevel) {
+        const reasoningLevels: { [key: string]: string } = {
+          'low': 'low',
+          'medium': 'medium', 
+          'high': 'high'
+        };
+        requestBody.reasoning.effort = reasoningLevels[params.reasoningLevel] || 'medium';
+      }
       
       // Basic parameters
       if (params.temperature !== undefined) requestBody.temperature = params.temperature;

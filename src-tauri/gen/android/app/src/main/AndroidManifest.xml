@@ -10,12 +10,14 @@
         android:label="@string/app_name"
         android:theme="@style/Theme.taulechat"
         android:usesCleartextTraffic="${usesCleartextTraffic}">
+        
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
             android:launchMode="singleTask"
             android:label="@string/main_activity_title"
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize" /> <!-- Adjusts the window when the keyboard appears -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -23,6 +25,7 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
+        
 
         <provider
           android:name="androidx.core.content.FileProvider"

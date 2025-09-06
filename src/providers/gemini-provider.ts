@@ -19,32 +19,49 @@ export class GeminiProvider implements ChatProvider {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${request.modelId.split("/")[1]}:streamGenerateContent?alt=sse`;
     
     // Build generation config with parameters
-    const generationConfig: any = {
-      thinkingConfig: { 
+    const generationConfig: any = {};
+    
+    // Check if model supports thinking based on model info
+    const modelSupportsThinking = request.modelInfo?.thinking === true ||
+                                  request.modelId?.includes('thinking') || 
+                                  request.modelId?.includes('2.0-flash-thinking') ||
+                                  request.modelId?.includes('exp-1206');
+    
+    // Only add thinking config for models that support it and when enabled
+    const includeThinking = request.parameters?.gemini_thinking !== false;
+    
+    if (modelSupportsThinking && includeThinking) {
+      generationConfig.thinkingConfig = { 
         includeThoughts: true 
-      }
-    };
+      };
+    }
 
     // Apply parameters if provided
     if (request.parameters) {
       const params = request.parameters;
       
-      // Basic parameters
       if (params.temperature !== undefined) generationConfig.temperature = params.temperature;
       if (params.max_tokens !== undefined) generationConfig.maxOutputTokens = params.max_tokens;
       if (params.top_p !== undefined) generationConfig.topP = params.top_p;
       if (params.top_k !== undefined) generationConfig.topK = params.top_k;
       
-      // Penalty parameters
       if (params.frequency_penalty !== undefined) generationConfig.frequencyPenalty = params.frequency_penalty;
       if (params.presence_penalty !== undefined) generationConfig.presencePenalty = params.presence_penalty;
       
-      // Gemini-specific parameters
       if (params.candidate_count !== undefined) generationConfig.candidateCount = params.candidate_count;
       if (params.seed !== undefined) generationConfig.seed = params.seed;
       if (params.stop_sequences !== undefined && params.stop_sequences.length > 0) {
         generationConfig.stopSequences = params.stop_sequences;
       }
+    }
+
+    const tools: any[] = [];
+    if (request.parameters?.gemini_tools && request.parameters.gemini_tools.length > 0) {
+      const toolsObj: any = {};
+      request.parameters.gemini_tools.forEach(tool => {
+        toolsObj[tool] = {};
+      });
+      tools.push(toolsObj);
     }
 
     const body = JSON.stringify({
@@ -55,7 +72,7 @@ export class GeminiProvider implements ChatProvider {
         }
         return { role: m.role === "assistant" ? "model" : "user", parts };
       }),
-      tools: [{"google_search": {}, "url_context": {}, "code_execution": {}} ],
+      ...(tools.length > 0 && { tools }),
       generationConfig,
     });
     const response = await fetch(url, {
@@ -110,7 +127,7 @@ export class GeminiProvider implements ChatProvider {
             }
           } else if (part.inlineData) {
             images.push({
-              mimeType: part.inlineData.mime_type || "image/png",
+              mimeType: part.inlineData.mimeType || part.inlineData.mime_type || "image/png",
               data: part.inlineData.data,
             });
           }

@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { getConversation as dbGetConversation, getMessagesForConversation, createConversation as dbCreateConversation, deleteConversation, getFilesForMessage } from "@/lib/database/methods";
 
+export type GeminiTool = 'google_search' | 'url_context' | 'code_execution';
+
 export interface ModelParameters {
   // Basic parameters
   temperature?: number;
@@ -16,6 +18,8 @@ export interface ModelParameters {
   // Gemini-specific parameters
   candidate_count?: number;
   stop_sequences?: string[];
+  gemini_tools?: GeminiTool[];
+  gemini_thinking?: boolean;
   
   // Advanced parameters
   seed?: number;
@@ -34,6 +38,7 @@ export interface ModelParameters {
   route?: 'fallback';
   provider?: any;
   user?: string;
+  reasoningLevel?: ReasoningLevel;
   
   // Tool calling
   tools?: any[];
@@ -74,7 +79,7 @@ export type MessageFile = {
     message_id: string;
     file_name: string;
     mime_type: string;
-    data: Uint8Array; // stored as BLOB in DB
+    data: Uint8Array | string; // stored as BLOB in DB, but may be returned as string (base64 or JSON array)
     size: number;
     created_at: string;
 };
@@ -130,9 +135,12 @@ export type SidebarDataState = {
     updateConversation: (conversation: Omit<ConversationState, 'messages'>) => void;
 }
 
+export type ReasoningLevel = 'low' | 'medium' | 'high';
+
 export type ChatConversationsState = {
     conversation: ConversationState | null;
     modelParameters: { [modelId: string]: ModelParameters };
+    reasoningLevel: ReasoningLevel;
 
     // Now requires a conversationId; implementation will fetch data from DB.
     setConversation: (conversationId: string | null) => Promise<void>;
@@ -152,6 +160,10 @@ export type ChatConversationsState = {
     getModelParameters: (modelId: string) => ModelParameters | undefined;
     resetModelParameters: (modelId: string) => void;
     loadModelParameters: () => Promise<void>;
+
+    // Reasoning level methods
+    setReasoningLevel: (level: ReasoningLevel) => void;
+    getReasoningLevel: () => ReasoningLevel;
 
     clearAll: () => void;
 };
@@ -213,6 +225,7 @@ export type OpenRouterModel = {
 export const useStore = create<ChatConversationsState>((set, get) => ({
     conversation: null,
     modelParameters: {},
+    reasoningLevel: 'medium',
 
     setConversation: async (conversationId: string | null) => {
         if (!conversationId) {
@@ -346,13 +359,29 @@ export const useStore = create<ChatConversationsState>((set, get) => ({
 
     loadModelParameters: async () => {
         try {
-            const { getAllModelParameters } = await import("@/utils/store");
-            const allParams = await getAllModelParameters();
-            set({ modelParameters: allParams });
+            const { getAllModelParameters, getReasoningLevel } = await import("@/utils/store");
+            const [allParams, reasoningLevel] = await Promise.all([
+                getAllModelParameters(),
+                getReasoningLevel()
+            ]);
+            set({ 
+                modelParameters: allParams,
+                reasoningLevel 
+            });
         } catch (error) {
             console.error("Error loading model parameters:", error);
         }
     },
+
+    // Reasoning level methods
+    setReasoningLevel: (level: ReasoningLevel) => {
+        set({ reasoningLevel: level });
+        // Persist to storage
+        import("@/utils/store").then(({ saveReasoningLevel }) => {
+            saveReasoningLevel(level).catch(console.error);
+        });
+    },
+    getReasoningLevel: () => get().reasoningLevel,
 
     clearAll: () => set(() => ({ conversation: null })),
 }));

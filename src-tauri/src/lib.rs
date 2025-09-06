@@ -2,17 +2,15 @@ use base64::{engine::general_purpose, Engine as _};
 use image::{DynamicImage, GenericImageView, ImageReader};
 use std::fs;
 use std::io::Cursor;
-use std::path::PathBuf;
-use tauri::AppHandle;
+use tauri::{AppHandle, Url};
 use tauri_plugin_fs::FsExt;
 use tauri_plugin_sql::{Migration, MigrationKind};
 
 #[tauri::command]
 async fn read_and_encode_file(app: AppHandle, file_path: String) -> Result<String, String> {
     let file_bytes = if cfg!(target_os = "android") && file_path.starts_with("content://") {
-        app.fs()
-            .read(PathBuf::from(&file_path))
-            .map_err(|e| e.to_string())?
+        let url = Url::parse(&file_path).map_err(|e| e.to_string())?;
+        app.fs().read(url).map_err(|e| e.to_string())?
     } else {
         fs::read(&file_path).map_err(|e| e.to_string())?
     };
@@ -25,9 +23,8 @@ async fn read_and_encode_file(app: AppHandle, file_path: String) -> Result<Strin
 #[tauri::command]
 async fn read_and_optimize_image(app: AppHandle, file_path: String) -> Result<String, String> {
     let img_bytes = if cfg!(target_os = "android") && file_path.starts_with("content://") {
-        app.fs()
-            .read(PathBuf::from(&file_path))
-            .map_err(|e| e.to_string())?
+        let url = Url::parse(&file_path).map_err(|e| e.to_string())?;
+        app.fs().read(url).map_err(|e| e.to_string())?
     } else {
         fs::read(&file_path).map_err(|e| e.to_string())?
     };

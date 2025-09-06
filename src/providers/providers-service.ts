@@ -10,7 +10,8 @@ import {
   finalizeAssistantMessage,
 } from "@/services/conversation-manager";
 import { toast } from "sonner";
-import { ModelParameters } from "@/utils/state";
+import { ModelParameters } from "./types";
+import { uint8ToBase64 } from "@/lib/utils";
 
 // Custom error classes for improved error handling
 export class ChatServiceError extends Error {
@@ -99,15 +100,6 @@ export function useChatService() {
     size: number;
   };
 
-  function uint8ToBase64(u8: Uint8Array) {
-    let binary = "";
-    const chunk = 0x8000;
-    for (let i = 0; i < u8.length; i += chunk) {
-      binary += String.fromCharCode.apply(null, Array.from(u8.subarray(i, i + chunk)) as any);
-    }
-    return btoa(binary);
-  }
-
   const sendPrompt = useCallback(
     async (id: string, prompt: string, model_id: string, attachments: SelectedAttachment[] = [], parameters?: ModelParameters) => {
       if (loading) return;
@@ -172,6 +164,7 @@ export function useChatService() {
             apiKey,
             attachments: geminiParts,
             parameters,
+            modelInfo: model,
           });
         } else {
           reader = await provider.streamResponse({
@@ -179,6 +172,7 @@ export function useChatService() {
             messages: formattedMessages,
             apiKey,
             parameters,
+            modelInfo: model,
           });
         }
         if (!reader) throw new ProviderResponseError("Failed to get response reader");

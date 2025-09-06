@@ -50,7 +50,7 @@ export default function SettingsScreen() {
   }, []);
 
   return (
-    <div className="p-6 bg-background text-foreground h-[90vh] overflow-auto">
+    <div className="p-6 bg-background text-foreground h-[90vh] overflow-auto py-40">
       <h1 className="text-2xl font-bold mb-6">Settings</h1>
       <p className="mb-6 text-muted-foreground">Manage your API keys here.</p>
       <div className="space-y-4  overflow-y-auto">

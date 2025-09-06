@@ -2,24 +2,39 @@ import { useOpenRouter } from "@/providers/providers-service";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
-import { OpenRouterModel, GeminiModel, useStore } from "@/utils/state";
-import { getModelsFromStore, saveFavoriteModel, removeFavoriteModel, isFavoriteModel } from "@/utils/store";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { OpenRouterModel, GeminiModel, useStore, GeminiTool } from "@/utils/state";
+import { getModelsFromStore, saveFavoriteModel, removeFavoriteModel, isFavoriteModel, getGeminiTools, getGeminiThinking } from "@/utils/store";
 import { toast } from "sonner";
 import ModelPicker from "./ModelPicker";
+import ReasoningPicker from "./ReasoningPicker";
+import GeminiToolsPicker from "./GeminiToolsPicker";
+import GeminiThinkingPicker from "./GeminiThinkingPicker";
 import AttachmentStrip from "./AttachmentStrip";
 import { useAttachments } from "@/hooks/useAttachments";
+import { useResponsiveControls } from "@/hooks/useResponsiveControls";
 
 export default function ChatInput({ id }: { id: string }) {
   const [userInput, setUserInput] = useState("");
   const [models, setModels] = useState<(OpenRouterModel | GeminiModel)[]>([]);
   const [open, setOpen] = useState(false);
   const [selectedModel, setSelectedModel] = useState<(OpenRouterModel | GeminiModel) | null>(null);
+  const [selectedGeminiTools, setSelectedGeminiTools] = useState<GeminiTool[]>([]);
+  const [geminiThinking, setGeminiThinking] = useState<boolean>(true);
+  const [showMoreOptions, setShowMoreOptions] = useState(false);
   const { sendPrompt } = useOpenRouter();
   const navigate = useNavigate();
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const conversationModelId = useStore((s) => s.conversation?.model_id);
-  const { getModelParameters, loadModelParameters } = useStore();
+  const { getModelParameters, loadModelParameters, getReasoningLevel, setReasoningLevel } = useStore();
+  const reasoningLevel = getReasoningLevel();
   const { attachments, handleFileUpload, removeAttachment, setAttachments, isProcessing } = useAttachments(selectedModel);
+
+  // Use responsive controls hook for better space management
+  const { containerRef, hasSpaceForInline } = useResponsiveControls({
+    minSpaceForInline: 400,
+    breakpoint: 640
+  });
 
   useEffect(() => {
     const loadModels = async () => {
@@ -29,6 +44,13 @@ export default function ChatInput({ id }: { id: string }) {
         const model_id = conversationModelId;
 
         await loadModelParameters();
+
+        const defaultTools = await getGeminiTools();
+        setSelectedGeminiTools(defaultTools as GeminiTool[]);
+
+        // Load default Gemini thinking setting
+        const defaultThinking = await getGeminiThinking();
+        setGeminiThinking(defaultThinking);
 
         setModels(fetchedModels);
         if (model_id) {
@@ -43,6 +65,9 @@ export default function ChatInput({ id }: { id: string }) {
     loadModels();
   }, [id, conversationModelId, loadModelParameters]);
 
+  const shouldShowInline = hasSpaceForInline && selectedModel;
+  const hasProviderSpecificControls = (selectedModel as any)?.provider === 'OpenRouter' || (selectedModel as any)?.provider === 'Gemini';
+
   const sendMessage = async (e?: React.MouseEvent<HTMLButtonElement>) => {
     if (e) e.preventDefault();
     if (!userInput.trim()) return;
@@ -54,14 +79,33 @@ export default function ChatInput({ id }: { id: string }) {
 
     const modelId = (selectedModel as any)?.id ?? "";
     const parameters = modelId ? getModelParameters(modelId) : undefined;
+    const isGeminiModel = (selectedModel as any)?.provider === 'Gemini';
+
+    const isOpenRouterModel = (selectedModel as any)?.provider === 'OpenRouter';
+    let enhancedParameters = isOpenRouterModel ? {
+      ...parameters,
+      reasoningLevel
+    } : parameters;
+
+    // Add Gemini-specific parameters if it's a Gemini model
+    if (isGeminiModel) {
+      enhancedParameters = {
+        ...enhancedParameters,
+        gemini_thinking: geminiThinking
+      };
+
+      if (selectedGeminiTools.length > 0) {
+        enhancedParameters.gemini_tools = selectedGeminiTools;
+      }
+    }
 
     let chatId = id;
     if (!chatId) {
       const newId = crypto.randomUUID();
-      sendPrompt(newId, userInput.trim(), modelId, attachments, parameters);
+      sendPrompt(newId, userInput.trim(), modelId, attachments, enhancedParameters);
       navigate(`/chat/${newId}`);
     } else {
-      sendPrompt(chatId, userInput.trim(), modelId, attachments, parameters);
+      sendPrompt(chatId, userInput.trim(), modelId, attachments, enhancedParameters);
     }
     setUserInput("");
     setAttachments([]);
@@ -172,20 +216,153 @@ export default function ChatInput({ id }: { id: string }) {
             </Button>
           </div>
           <div className="w-full flex justify-start mt-1">
-            <div className="max-w-xs w-full">
-              <ModelPicker
-                models={models}
-                selectedModel={selectedModel}
-                setSelectedModel={setSelectedModel}
-                open={open}
-                setOpen={setOpen}
-                handleToggleFavorite={handleToggleFavorite}
-              />
+            <div ref={containerRef} className="flex items-center gap-2 w-full min-w-0 overflow-hidden">
+              <div className="w-full">
+                <ModelPicker
+                  models={models}
+                  selectedModel={selectedModel}
+                  setSelectedModel={setSelectedModel}
+                  open={open}
+                  setOpen={setOpen}
+                  handleToggleFavorite={handleToggleFavorite}
+                />
+              </div>
+
+              {/* Secondary controls - shown inline when there's space */}
+              {shouldShowInline && hasProviderSpecificControls && (
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {(selectedModel as any)?.provider === 'OpenRouter' && (
+                    <ReasoningPicker
+                      reasoningLevel={reasoningLevel}
+                      setReasoningLevel={setReasoningLevel}
+                      disabled={!selectedModel}
+                    />
+                  )}
+                  {(selectedModel as any)?.provider === 'Gemini' && (
+                    <>
+                      {/* Only show thinking picker for models that support it */}
+                      {selectedModel?.id?.includes('thinking') && (
+                        <GeminiThinkingPicker
+                          thinkingEnabled={geminiThinking}
+                          setThinkingEnabled={setGeminiThinking}
+                          disabled={!selectedModel}
+                        />
+                      )}
+                      <GeminiToolsPicker
+                        selectedTools={selectedGeminiTools}
+                        onToolsChange={setSelectedGeminiTools}
+                        disabled={!selectedModel}
+                      />
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* More options button - shown when space is limited or on mobile */}
+              {hasProviderSpecificControls && (
+                <div className={`flex-shrink-0 ${shouldShowInline ? 'hidden' : 'block'}`}>
+                  <Popover open={showMoreOptions} onOpenChange={setShowMoreOptions}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 w-8 p-0 rounded-full motion-safe:transition-all motion-safe:duration-150 hover:bg-accent/10 active:scale-95"
+                        disabled={!selectedModel}
+                        aria-label="More options"
+                        title="More options"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={1.5}
+                          stroke="currentColor"
+                          className="w-4 h-4"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 12.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 18.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Z" />
+                        </svg>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64 p-3" align="start">
+                      <div className="space-y-3">
+                        <h4 className="font-medium text-sm">Model Options</h4>
+                        <div className="space-y-3">
+                          {(selectedModel as any)?.provider === 'OpenRouter' && (
+                            <div>
+                              <label className="text-xs text-muted-foreground mb-2 block">Reasoning Level</label>
+                              <ReasoningPicker
+                                reasoningLevel={reasoningLevel}
+                                setReasoningLevel={setReasoningLevel}
+                                disabled={!selectedModel}
+                                compact={true}
+                              />
+                            </div>
+                          )}
+                          {(selectedModel as any)?.provider === 'Gemini' && (
+                            <>
+                              <div>
+                                <label className="text-xs text-muted-foreground mb-2 block">Thinking Mode</label>
+                                <GeminiThinkingPicker
+                                  thinkingEnabled={geminiThinking}
+                                  setThinkingEnabled={setGeminiThinking}
+                                  disabled={!selectedModel}
+                                  compact={true}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs text-muted-foreground mb-2 block">Tools Configuration</label>
+                                <GeminiToolsPicker
+                                  selectedTools={selectedGeminiTools}
+                                  onToolsChange={setSelectedGeminiTools}
+                                  disabled={!selectedModel}
+                                  compact={true}
+                                />
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
+
+              {/* Status indicators - minimal space usage */}
+              <div className="flex items-center gap-1 ml-auto flex-shrink-0 min-w-0">
+                {(selectedModel as any)?.provider === 'OpenRouter' && reasoningLevel !== 'medium' && (
+                  <div className="hidden sm:flex">
+                    <span className="text-xs px-2 py-1 bg-accent/20 rounded-full text-muted-foreground truncate">
+                      {reasoningLevel}
+                    </span>
+                  </div>
+                )}
+                {(selectedModel as any)?.provider === 'Gemini' && (
+                  <div className="hidden sm:flex gap-1">
+                    {!geminiThinking && (
+                      <span className="text-xs px-2 py-1 bg-accent/20 rounded-full text-muted-foreground">
+                        no thinking
+                      </span>
+                    )}
+                    {selectedGeminiTools.length > 0 && (
+                      <span className="text-xs px-2 py-1 bg-accent/20 rounded-full text-muted-foreground">
+                        {selectedGeminiTools.length} tool{selectedGeminiTools.length !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
+                )}
+                {/* Mobile indicator - just show dots if there are active settings */}
+                <div className="sm:hidden">
+                  {((selectedModel as any)?.provider === 'OpenRouter' && reasoningLevel !== 'medium') ||
+                    ((selectedModel as any)?.provider === 'Gemini' && (!geminiThinking || selectedGeminiTools.length > 0)) ? (
+                    <div className="w-2 h-2 bg-accent rounded-full" title="Active settings" />
+                  ) : null}
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </form>
-    </div>
+      </form >
+    </div >
   );
 }
 

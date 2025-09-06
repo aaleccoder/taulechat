@@ -137,3 +137,30 @@ export async function removeModelParameters(modelId: string) {
   await store.set("model_parameters", currentParams);
   await store.save();
 }
+
+export async function saveReasoningLevel(level: 'low' | 'medium' | 'high') {
+  await store.set("reasoning_level", level);
+  await store.save();
+}
+
+export async function getReasoningLevel(): Promise<'low' | 'medium' | 'high'> {
+  return await store.get<'low' | 'medium' | 'high'>("reasoning_level") || 'medium';
+}
+
+export async function saveGeminiTools(tools: string[]) {
+  await store.set("gemini_tools", tools);
+  await store.save();
+}
+
+export async function getGeminiTools(): Promise<string[]> {
+  return await store.get<string[]>("gemini_tools") || [];
+}
+
+export async function saveGeminiThinking(enabled: boolean) {
+  await store.set("gemini_thinking", enabled);
+  await store.save();
+}
+
+export async function getGeminiThinking(): Promise<boolean> {
+  return await store.get<boolean>("gemini_thinking") ?? true; // Default to true
+}

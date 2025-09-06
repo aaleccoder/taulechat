@@ -2,10 +2,14 @@ import { useEffect, useState } from "react";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Brain, Star, StarOff, Search, X } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Brain, Star, StarOff, Search, X, Info } from "lucide-react";
 import { getFavoriteModels, saveFavoriteModel, removeFavoriteModel } from "@/utils/store";
 import { OpenRouterModel, GeminiModel } from "@/utils/state";
 import { getProviderIconSvg } from "@/utils/providerIcon";
+import { useIsMobile } from "@/hooks/use-mobile";
+import ModelDetails from "@/components/ModelDetails";
 
 export default function ModelsList({
     models,
@@ -22,6 +26,9 @@ export default function ModelsList({
     const [searchValue, setSearchValue] = useState("");
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
     const [favoriteModelIds, setFavoriteModelIds] = useState<string[]>([]);
+    const [detailsModel, setDetailsModel] = useState<OpenRouterModel | GeminiModel | null>(null);
+    const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+    const deviceIsMobile = useIsMobile();
 
     useEffect(() => {
         const loadFavorites = async () => {
@@ -204,7 +211,15 @@ export default function ModelsList({
                                 const modelId = (model as any).id;
                                 const isFavorite = favoriteModelIds.includes(modelId);
 
-                                return (
+                                const handleDetailsClick = (e: React.MouseEvent) => {
+                                    e.stopPropagation();
+                                    if (deviceIsMobile || isMobile) {
+                                        setDetailsModel(model);
+                                        setIsDetailsOpen(true);
+                                    }
+                                };
+
+                                const ModelCard = (
                                     <Card
                                         key={name}
                                         role="option"
@@ -217,11 +232,23 @@ export default function ModelsList({
                                         onClick={() => { setOpen(false); setSelectedModel(model); }}
                                         onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { setOpen(false); setSelectedModel(model); } }}
                                     >
-                                        {/* Favorite Star Button */}
+                                        {/* Details Button */}
                                         <Button
                                             variant="ghost"
                                             size="sm"
                                             className={`absolute top-3 right-3 ${isMobile ? 'w-10 h-10' : 'w-8 h-8'
+                                                } p-0 rounded-full hover:bg-accent/20 min-h-[44px] min-w-[44px] opacity-70 hover:opacity-100`}
+                                            onClick={handleDetailsClick}
+                                            title="View model details"
+                                        >
+                                            <Info className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4'} text-muted-foreground`} />
+                                        </Button>
+
+                                        {/* Favorite Star Button */}
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className={`absolute top-3 ${isMobile ? 'right-14' : 'right-11'} ${isMobile ? 'w-10 h-10' : 'w-8 h-8'
                                                 } p-0 rounded-full hover:bg-accent/20 min-h-[44px] min-w-[44px]`}
                                             onClick={(e) => toggleFavorite(modelId, e)}
                                             title={isFavorite ? "Remove from favorites" : "Add to favorites"}
@@ -272,10 +299,44 @@ export default function ModelsList({
                                         </div>
                                     </Card>
                                 );
+
+                                // For desktop, wrap the card in a popover
+                                if (!deviceIsMobile && !isMobile) {
+                                    return (
+                                        <Popover key={name}>
+                                            <PopoverTrigger asChild>
+                                                {ModelCard}
+                                            </PopoverTrigger>
+                                            <PopoverContent
+                                                side="right"
+                                                align="start"
+                                                className="w-80 max-h-96 overflow-y-auto"
+                                                sideOffset={10}
+                                            >
+                                                <ModelDetails model={model} isMobile={false} />
+                                            </PopoverContent>
+                                        </Popover>
+                                    );
+                                }
+
+                                // For mobile, just return the card (dialog handled separately)
+                                return ModelCard;
                             })
                     )}
                 </div>
             </div>
+
+            {/* Mobile Details Dialog */}
+            <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+                <DialogContent className="max-w-[95vw] max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Model Details</DialogTitle>
+                    </DialogHeader>
+                    {detailsModel && (
+                        <ModelDetails model={detailsModel} isMobile={true} />
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
