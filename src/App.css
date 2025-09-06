@@ -124,7 +124,7 @@ body {
   --muted: #292c3c;
   --muted-foreground: #a6adc8;
   --accent: #b4a1fa;
-  --accent-foreground: #1e1e2e;
+  --accent-foreground: #cdd6f4;
   --destructive: #f38ba8;
   --destructive-foreground: #1e1e2e;
   --border: #313244;
@@ -243,6 +243,10 @@ body {
     max-width: 160px;
     min-width: 120px;
   }
+}
+
+.chat-input-buttons {
+  @apply flex flex-shrink-0 items-center gap-1 text-xs rounded-xl;
 }
 
 .star-btn {

@@ -70,7 +70,6 @@ export default function GeminiToolsPicker({ selectedTools, onToolsChange, disabl
     const hasSelectedTools = selectedTools.length > 0;
     const hasDefaultTools = defaultTools.length > 0;
 
-    // Use compact to modify button size if needed
     const buttonSize = compact ? "sm" : "sm";
     const buttonClass = compact ? "h-7 text-xs" : "h-8";
 
@@ -80,7 +79,7 @@ export default function GeminiToolsPicker({ selectedTools, onToolsChange, disabl
                 <Button
                     variant="outline"
                     size={buttonSize}
-                    className={`rounded-full motion-safe:transition-all motion-safe:duration-150 hover:bg-accent/10 active:scale-95 ${buttonClass}`}
+                    className={`chat-input-buttons`}
                     disabled={disabled}
                     aria-label="Configure Gemini tools"
                     title="Configure Gemini tools"

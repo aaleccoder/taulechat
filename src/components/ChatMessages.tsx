@@ -4,7 +4,6 @@ import { useCallback } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import UserMessage from "./messages/UserMessage";
 import AssistantMessage from "./messages/AssistantMessage";
-import ImageMessage from "./ImageMessage";
 import Lightbox from "./Lightbox";
 
 
@@ -28,13 +27,8 @@ export default function ChatMessages() {
 
   return (
     <TooltipProvider delayDuration={100}>
-      <div className="flex flex-col space-y-2 w-full max-w-full transition-all duration-300 px-4 py-4 overflow-y-auto h-full">
+      <div className="flex flex-col space-y-4 w-full max-w-full transition-all duration-300 px-4 py-4 overflow-y-auto h-full">
         {messages.map((message, index) => {
-          const imageFiles = (message.files || []).filter(f => f.mime_type.startsWith('image/'));
-
-          if (imageFiles.length > 0) {
-            return <ImageMessage key={message.id} message={message} />;
-          }
 
           if (message.role === "user") {
             return (

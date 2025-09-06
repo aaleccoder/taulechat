@@ -31,7 +31,7 @@ export default function GeminiThinkingPicker({ thinkingEnabled, setThinkingEnabl
         <Button
             variant="outline"
             size="sm"
-            className={`rounded-full px-3 gap-2 motion-safe:transition-all motion-safe:duration-150 hover:bg-accent/10 active:scale-95 ${triggerClass}`}
+            className={`chat-input-buttons`}
             disabled={disabled}
             aria-label="Toggle thinking mode"
             title="Toggle thinking mode"

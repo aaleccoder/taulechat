@@ -7,6 +7,7 @@ import { OpenRouterModel, GeminiModel, useStore, GeminiTool } from "@/utils/stat
 import { getModelsFromStore, saveFavoriteModel, removeFavoriteModel, isFavoriteModel, getGeminiTools, getGeminiThinking } from "@/utils/store";
 import { toast } from "sonner";
 import ModelPicker from "./ModelPicker";
+import ModelParameters from "./ModelParameters";
 import ReasoningPicker from "./ReasoningPicker";
 import GeminiToolsPicker from "./GeminiToolsPicker";
 import GeminiThinkingPicker from "./GeminiThinkingPicker";
@@ -22,6 +23,7 @@ export default function ChatInput({ id }: { id: string }) {
   const [selectedGeminiTools, setSelectedGeminiTools] = useState<GeminiTool[]>([]);
   const [geminiThinking, setGeminiThinking] = useState<boolean>(true);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
+  const [parametersOpen, setParametersOpen] = useState(false);
   const { sendPrompt } = useOpenRouter();
   const navigate = useNavigate();
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -215,9 +217,9 @@ export default function ChatInput({ id }: { id: string }) {
               </svg>
             </Button>
           </div>
-          <div className="w-full flex justify-start mt-1 overflow-x-auto">
-            <div ref={containerRef} className="flex items-center gap-2 w-full min-w-0 overflow-hidden">
-              <div className="w-full">
+          <div className="w-full flex justify-start mt-1">
+            <div ref={containerRef} className="flex items-center gap-2 w-full min-w-0 overflow-x-auto">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <ModelPicker
                   models={models}
                   selectedModel={selectedModel}
@@ -226,47 +228,43 @@ export default function ChatInput({ id }: { id: string }) {
                   setOpen={setOpen}
                   handleToggleFavorite={handleToggleFavorite}
                 />
-              </div>
 
-              {/* Secondary controls - shown inline when there's space */}
-              {shouldShowInline && hasProviderSpecificControls && (
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {(selectedModel as any)?.provider === 'OpenRouter' && (
-                    <ReasoningPicker
-                      reasoningLevel={reasoningLevel}
-                      setReasoningLevel={setReasoningLevel}
-                      disabled={!selectedModel}
+                {/* Model parameters button */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 rounded-full motion-safe:transition-all motion-safe:duration-150 hover:bg-accent/10 active:scale-95 flex-shrink-0"
+                  disabled={!selectedModel}
+                  onClick={() => setParametersOpen(true)}
+                  title="Configure model parameters"
+                  aria-label="Configure model parameters"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="w-4 h-4"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 0 1 1.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.559.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.894.149c-.424.07-.764.383-.929.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 0 1-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.398.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 0 1-.12-1.45l.527-.737c.25-.35.272-.806.108-1.204-.165-.397-.506-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 0 1 .12-1.45l.773-.773a1.125 1.125 0 0 1 1.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894Z"
                     />
-                  )}
-                  {(selectedModel as any)?.provider === 'Gemini' && (
-                    <>
-                      {/* Only show thinking picker for models that support it */}
-                      {selectedModel?.id?.includes('thinking') && (
-                        <GeminiThinkingPicker
-                          thinkingEnabled={geminiThinking}
-                          setThinkingEnabled={setGeminiThinking}
-                          disabled={!selectedModel}
-                        />
-                      )}
-                      <GeminiToolsPicker
-                        selectedTools={selectedGeminiTools}
-                        onToolsChange={setSelectedGeminiTools}
-                        disabled={!selectedModel}
-                      />
-                    </>
-                  )}
-                </div>
-              )}
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                  </svg>
+                </Button>
 
-              {/* More options button - shown when space is limited or on mobile */}
-              {hasProviderSpecificControls && (
-                <div className={`flex-shrink-0 ${shouldShowInline ? 'hidden' : 'block'}`}>
+                {/* More options button - only show when there's NOT enough space for inline controls */}
+                {hasProviderSpecificControls && !shouldShowInline && (
                   <Popover open={showMoreOptions} onOpenChange={setShowMoreOptions}>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-8 w-8 p-0 rounded-full motion-safe:transition-all motion-safe:duration-150 hover:bg-accent/10 active:scale-95"
+                        className="h-8 w-8 p-0 rounded-full motion-safe:transition-all motion-safe:duration-150 hover:bg-accent/10 active:scale-95 flex-shrink-0"
                         disabled={!selectedModel}
                         aria-label="More options"
                         title="More options"
@@ -324,6 +322,35 @@ export default function ChatInput({ id }: { id: string }) {
                       </div>
                     </PopoverContent>
                   </Popover>
+                )}
+              </div>
+
+              {shouldShowInline && hasProviderSpecificControls && (
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {(selectedModel as any)?.provider === 'OpenRouter' && (
+                    <ReasoningPicker
+                      reasoningLevel={reasoningLevel}
+                      setReasoningLevel={setReasoningLevel}
+                      disabled={!selectedModel}
+                    />
+                  )}
+                  {(selectedModel as any)?.provider === 'Gemini' && (
+                    <>
+                      {/* Only show thinking picker for models that support it */}
+                      {selectedModel?.thinking == true && (
+                        <GeminiThinkingPicker
+                          thinkingEnabled={geminiThinking}
+                          setThinkingEnabled={setGeminiThinking}
+                          disabled={!selectedModel}
+                        />
+                      )}
+                      <GeminiToolsPicker
+                        selectedTools={selectedGeminiTools}
+                        onToolsChange={setSelectedGeminiTools}
+                        disabled={!selectedModel}
+                      />
+                    </>
+                  )}
                 </div>
               )}
 
@@ -361,6 +388,12 @@ export default function ChatInput({ id }: { id: string }) {
             </div>
           </div>
         </div>
+
+        <ModelParameters
+          open={parametersOpen}
+          onOpenChange={setParametersOpen}
+          selectedModel={selectedModel}
+        />
       </form >
     </div >
   );
