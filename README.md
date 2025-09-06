@@ -1,15 +1,9 @@
-Nice — cleaned, structured, and ready to impress maintainers and humans alike. I tightened the wording, improved hierarchy, added a focused Quick Start, and left clear places for screenshots/badges. Below is a full, ready-to-drop `README.md`. Paste it into your repo, tweak the image paths/badges if you want, and it’ll look sharper.
-
----
-
 # TauleChat
 
 > A lightweight, desktop-first chat and LLM interface for providers like **OpenRouter** and **Gemini** — clean, fast, and Tauri-ready.
 
 [![publish](https://github.com/aaleccoder/taulechat/actions/workflows/publish.yml/badge.svg)](https://github.com/aaleccoder/taulechat/actions/workflows/publish.yml)
 ![TauleChat Banner](src-tauri/icons/icon.png)
-
----
 
 ## Table of contents
 
@@ -43,7 +37,6 @@ TauleChat is a compact chat interface focused on a fast, desktop-first experienc
 
 ## Screenshots
 
-> Replace these with actual screenshots or an animated demo GIF for best effect.
 
 ![Main chat (placeholder)](docs/screenshoots/image.png)
 
@@ -163,10 +156,7 @@ CI tips:
 
 ## Contributing
 
-Not accepting contributions at this time — feel free to fork and explore. If you want to propose changes:
-
-* Create a fork and open a PR against your fork.
-* Document workflow changes or CI suggestions in an issue in your fork.
+Not accepting contributions at this time — feel free to fork and explore.
 
 ---
 
