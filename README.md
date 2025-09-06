@@ -1,13 +1,9 @@
----
-
 # TauleChat
 
 > A lightweight, desktop-first chat and LLM interface for providers like **OpenRouter** and **Gemini** — clean, fast, and Tauri-ready.
 
 [![publish](https://github.com/aaleccoder/taulechat/actions/workflows/publish.yml/badge.svg)](https://github.com/aaleccoder/taulechat/actions/workflows/publish.yml)
-![TauleChat Banner](src-tauri/icons/icon.png)]
-
----
+![TauleChat Banner](src-tauri/icons/icon.png)
 
 ## Table of contents
 
