@@ -17,10 +17,8 @@ import { Toaster } from "./components/ui/sonner";
 import { ProviderName } from "./components/Settings";
 import { getAPIKeyFromStore } from "./utils/store";
 import { Button } from "@/components/ui/button";
-import { useUIVisibility } from "./utils/state";
 
 function App() {
-  const { isHeaderVisible } = useUIVisibility();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -46,7 +44,7 @@ function App() {
       <SidebarProvider open={open} onOpenChange={setOpen}>
         <AppSidebar />
         <SidebarInset>
-          <header className={`absolute top-0 left-0 right-0 z-30 border-b bg-background/80 backdrop-blur-sm transition-all duration-300
+          <header className={`app-header absolute top-0 left-0 right-0 z-30 border-b bg-background/80 backdrop-blur-sm transition-all duration-300
             }`}>
             <SidebarTrigger className="sidebar-trigger-button" />
 
