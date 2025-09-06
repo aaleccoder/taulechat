@@ -2,10 +2,8 @@ name: publish
 
 on:
   push:
-    branches:
-      - release
     tags:
-      - "v*"
+      - "v*" # trigger only when a version tag is pushed, e.g. v1.2.3
 
 jobs:
   publish-tauri:
@@ -41,7 +39,7 @@ jobs:
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          # Those targets are only used on macos runners so it's in an `if` to slightly speed up windows and linux builds.
+          # Those targets are only used on macOS runners so it's in an `if` to slightly speed up windows and linux builds.
           targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       - name: Rust cache
@@ -56,7 +54,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
-      - name: Cache node modules
+      - name: Cache bun modules
         uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
@@ -68,14 +66,21 @@ jobs:
         timeout-minutes: 10
         run: bun install
 
-      - uses: tauri-apps/tauri-action@v0
+      - name: build & publish with Tauri
+        uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: app-v__VERSION__ # the action automatically replaces __VERSION__ with the app version.
-          releaseName: "App v__VERSION__"
+          tagName: ${{ github.ref_name }} # ensures the release tag matches the git tag (e.g. v1.2.3)
+          releaseName: "App ${{ github.ref_name }}"
           releaseBody: "See the assets to download this version and install."
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
         timeout-minutes: 60
+
+      - name: Upload build artifacts for inspection
+        uses: actions/upload-artifact@v4
+        with:
+          name: tauri-build-${{ matrix.platform }}
+          path: src-tauri/target/release/bundle/
