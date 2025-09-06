@@ -32,7 +32,6 @@ export default function ChatInput({ id }: { id: string }) {
   const reasoningLevel = getReasoningLevel();
   const { attachments, handleFileUpload, removeAttachment, setAttachments, isProcessing } = useAttachments(selectedModel);
 
-  // Use responsive controls hook for better space management
   const { containerRef, hasSpaceForInline } = useResponsiveControls({
     minSpaceForInline: 400,
     breakpoint: 640
