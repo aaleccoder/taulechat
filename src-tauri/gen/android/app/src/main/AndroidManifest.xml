@@ -17,11 +17,10 @@
             android:label="@string/main_activity_title"
             android:name=".MainActivity"
             android:exported="true"
-            android:windowSoftInputMode="adjustResize" /> <!-- Adjusts the window when the keyboard appears -->
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
-                <!-- AndroidTV support -->
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>

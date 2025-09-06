@@ -2,7 +2,6 @@ import { ChatProvider, FormattedMessage, StreamRequest } from "./types";
 
 export class GeminiImageProvider implements ChatProvider {
   formatMessages(messages: any[]): FormattedMessage[] {
-    // Only use the latest user message as prompt
     const lastUser = messages.filter((m: any) => m.role === "user").pop();
     return lastUser ? [{ role: "user", content: lastUser.content }] : [];
   }

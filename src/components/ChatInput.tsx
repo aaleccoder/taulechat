@@ -215,7 +215,7 @@ export default function ChatInput({ id }: { id: string }) {
               </svg>
             </Button>
           </div>
-          <div className="w-full flex justify-start mt-1">
+          <div className="w-full flex justify-start mt-1 overflow-x-auto">
             <div ref={containerRef} className="flex items-center gap-2 w-full min-w-0 overflow-hidden">
               <div className="w-full">
                 <ModelPicker

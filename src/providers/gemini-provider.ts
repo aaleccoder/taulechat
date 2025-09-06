@@ -11,6 +11,11 @@ export class GeminiProvider implements ChatProvider {
     return messages.map((m: any) => ({ role: m.role, content: m.content }));
   }
 
+  // Buffer to hold partial SSE data between stream chunks. This prevents
+  // large JSON payloads (for example base64 image inlineData) being lost
+  // when an event is split across multiple Uint8Array chunks.
+  private sseBuffer: string = "";
+
   async streamResponse(request: StreamRequest): Promise<ReadableStreamDefaultReader<Uint8Array>> {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
@@ -18,16 +23,13 @@ export class GeminiProvider implements ChatProvider {
     if (request.apiKey) headers["x-goog-api-key"] = request.apiKey;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${request.modelId.split("/")[1]}:streamGenerateContent?alt=sse`;
     
-    // Build generation config with parameters
     const generationConfig: any = {};
     
-    // Check if model supports thinking based on model info
     const modelSupportsThinking = request.modelInfo?.thinking === true ||
                                   request.modelId?.includes('thinking') || 
                                   request.modelId?.includes('2.0-flash-thinking') ||
                                   request.modelId?.includes('exp-1206');
     
-    // Only add thinking config for models that support it and when enabled
     const includeThinking = request.parameters?.gemini_thinking !== false;
     
     if (modelSupportsThinking && includeThinking) {
@@ -36,7 +38,6 @@ export class GeminiProvider implements ChatProvider {
       };
     }
 
-    // Apply parameters if provided
     if (request.parameters) {
       const params = request.parameters;
       
@@ -106,15 +107,25 @@ export class GeminiProvider implements ChatProvider {
 
   parseStreamChunk(value: Uint8Array, decoder: TextDecoder) {
     const chunk = decoder.decode(value, { stream: true });
-    const lines = chunk.split("\n").filter((line) => line.startsWith("data: "));
+    this.sseBuffer += chunk;
+    const rawLines = this.sseBuffer.split("\n");
+    if (!this.sseBuffer.endsWith("\n")) {
+      this.sseBuffer = rawLines.pop() || "";
+    } else {
+      this.sseBuffer = "";
+    }
+
+    const dataLines = rawLines.map(l => l.trim()).filter(l => l.startsWith("data:") || l.startsWith("data: "));
     let token = "";
     let thoughts = "";
-    console.log(chunk);
     let metadata: any = {};
     let images: any[] = [];
-    for (const line of lines) {
-      const jsonStr = line.replace("data: ", "").trim();
-      if (jsonStr === "[DONE]") break;
+
+    for (const line of dataLines) {
+      const m = line.match(/^data:\s?(.*)$/);
+      if (!m) continue;
+      const jsonStr = m[1].trim();
+      if (!jsonStr || jsonStr === "[DONE]") continue;
       try {
         const parsed = JSON.parse(jsonStr);
         const parts = parsed?.candidates?.[0]?.content?.parts || [];
@@ -140,10 +151,13 @@ export class GeminiProvider implements ChatProvider {
           modelVersion: parsed?.modelVersion,
           responseId: parsed?.responseId,
         };
-
-        console.log(parsed);
-      } catch {}
+      } catch (e) {
+        // JSON.parse failed — likely a split event; requeue this line into buffer for next chunk
+        this.sseBuffer = line + "\n" + this.sseBuffer;
+        continue;
+      }
     }
+
     if (images.length > 0) {
       metadata.images = images;
     }
