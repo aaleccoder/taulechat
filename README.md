@@ -1,55 +1,80 @@
-# Taulechat.
+# TauleChat
 
-### A lightweight chat and LLM interface for AI providers (currently OpenRouter and Gemini).
+### A lightweight chat and LLM interface for AI providers (OpenRouter and Gemini)
 [![publish](https://github.com/aaleccoder/taulechat/actions/workflows/publish.yml/badge.svg)](https://github.com/aaleccoder/taulechat/actions/workflows/publish.yml)
 
-![Taulechat Banner](src-tauri/icons/icon.png)
+![TauleChat Banner](src-tauri/icons/icon.png)
 
-This is a chat and LLM interface that consumes from AI providers like OpenRouter and Gemini. It focuses on simplicity rather than tons of functionality, and it's made as a hobby for personal use. It was born out of the necessity of having an app that does this. Some exist, but they are far too complex and fully features which is amazing, but i dont take much of those functionalities, also kind of pain to set up, and i dont wanna use a website. And on Android, I haven't really found any alternative.
-
-So that's why I built this using Tauri. Even if it's experimental, I can build something that's desktop-first, fully featured, and performant while being able to compile for Android too.
+TauleChat is a simple chat and LLM interface for providers like OpenRouter and Gemini. It focuses on a clean, fast, and desktop-first experience, while still being able to compile for Android via Tauri. It was built to avoid overly complex apps and web-only workflows.
 
 ## How to build
 
-To build the app, you need to have [Bun](https://bun.sh/) installed. Also, use [rustup](https://rustup.rs/) to set up the Rust toolchain correctly.
+Prerequisites:
+- Bun: https://bun.sh/
+- Rust toolchain via rustup: https://rustup.rs/
 
+Commands:
 ```bash
 bun install
 bun tauri dev
 bun tauri build
 ```
 
-## Current Features
+## Current features
 
-*   **LaTeX Rendering:** Write and render LaTeX expressions.
-*   **Syntax Highlighting:** Code blocks are highlighted for better readability.
-*   **Image Uploading:** Upload images to use with multimodal models on OpenRouter and Gemini.
-*   **Image Lightbox:** View uploaded and generated images in a full-screen lightbox.
-*   **Model Picker:** Switch between different models from the supported providers, with provider icons.
-*   **Customizable Model Parameters:** Adjust model settings for both Gemini and OpenRouter.
-*   **Link Preview:** Tooltips for link previews.
-*   **Multi-select:** Functionality in the sidebar for batch actions on conversations.
-*   **Usage Metadata:** Display of usage metadata for model responses.
-*   **Search:** Search functionality for conversations.
-*   **Message Stats:** View statistics about your messages from Gemini.
-*   **Grounding Search:** Grounding search with citations and link previews via Gemini.
-*   **"Thoughts" Display:** View the model's internal thought process with a collapsible component.
-*   **Android Support:** Full-fledged support for Android devices, on par with desktop.
-*   **Providers:**
-    *   Gemini
-    *   OpenRouter
+Recent work focused on provider streaming, image support, and Android UX.
+
+- Core chat
+    - LaTeX rendering and syntax-highlighted code blocks
+    - Streaming and raw-text streaming (SSE buffering for Gemini)
+    - Collapsible “Thoughts” view to inspect model reasoning
+
+- Models & providers
+    - Gemini and OpenRouter with improved error handling and metadata
+    - Model picker with provider icons and a ModelParameters UI per request
+
+- Images & attachments
+    - Image upload and image generation (GeminiImageProvider + OpenRouter multimodal)
+    - Image optimization, loading states, preview strip, and lightbox
+    - File attachments in messages and Android file handling via tauri-plugin-fs
+
+- UI & UX
+    - Refactored ChatInput and ChatMessages with mobile-friendly behavior
+    - Dialog-based parameter editor (replaces Drawer) and smoother collapsibles
+    - Memoized markdown rendering and improved image previews
+
+- Utilities & integrations
+    - Usage metadata for responses and message stats for Gemini
+    - Link preview tooltip, shell plugin integration, and Radix checkbox for multi-select in the sidebar
 
 ## Roadmap
-*   **UI/UX Enhancements:** Continuously improve the user interface and experience.
-*   **Message Branching:** Create and manage different conversation branches.
-*   **Local LLM Support:** Support for running local LLMs (pending hardware availability for testing that i do not have right now).
-*   **Theme Support:** Customize the look and feel of the app with themes.
-*   **Enhanced Image Generation:** Improve rendering and interaction with generated images.
+
+Short-term priorities based on recent work and gaps:
+
+- Release & CI
+    - Stabilize the publish workflow and release automation
+    - Improve CI installs and caching across Linux, macOS, Windows, and Android
+
+- Provider & streaming
+    - Finalize robust SSE/streaming with retry/backpressure
+    - Add streaming UX (cancel/stop, partial save)
+
+- Images & local LLMs
+    - Better image generation controls (presets, params, progress)
+    - Groundwork for optional local LLM support when hardware is available
+
+- Android & file handling
+    - Broaden Android tests and fix platform-specific file/permission issues
+    - Finalize tauri-plugin-fs usage and file picker behavior across API levels
+
+- Polishing & stability
+    - Add unit/integration tests for providers and message parsing
+    - Improve error reporting and user-facing network/provider messages
 
 ## Contributions
 
-For now, I'm not open to contributions because this is a learning project for me. However, you are free to fork it and continue your own path.
+Not accepting contributions at this time. Feel free to fork and explore your own direction.
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+MIT License. See [LICENSE](LICENSE) for details.
