@@ -1,10 +1,17 @@
-/* Blind open/close animation for CollapsibleContent */
-/* Improved blind open/close animation for CollapsibleContent */
-
+@import url("https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&family=Geist:wght@100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Sora:wght@100..800&display=swap");
 .model-select-btn {
   @apply h-auto min-h-[2.5rem] rounded-full px-3 py-1.5 truncate flex-1 transition-all duration-150 hover:bg-accent/10 active:scale-[0.98];
   max-width: 100%;
   min-width: 0;
+}
+
+body {
+  font-family: var(--font-sans), sans-serif;
+}
+
+code,
+pre {
+  font-family: "Geist Mono", monospace;
 }
 
 .blind-animate[data-state="open"] {
@@ -28,6 +35,7 @@
 
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "./themes/index.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -39,7 +47,6 @@ html {
 body {
   padding: 0;
   margin: 0;
-  font-family: "Sora", sans-serif;
   overflow: hidden;
   height: 100%;
 }
@@ -49,122 +56,8 @@ body {
   overflow: hidden;
 }
 
-
 :root {
   --safe-area-bottom: max(env(safe-area-inset-bottom), 0.5rem);
-  --background: #eff1f5;
-  --foreground: #4c4f69;
-  --card: #ffffff;
-  --card-foreground: #4c4f69;
-  --popover: #ccd0da;
-  --popover-foreground: #4c4f69;
-  --primary: #8839ef;
-  --primary-foreground: #ffffff;
-  --secondary: #ccd0da;
-  --secondary-foreground: #4c4f69;
-  --muted: #dce0e8;
-  --muted-foreground: #d4d4d4;
-  --accent: #04a5e5;
-  --accent-foreground: #ffffff;
-  --destructive: #d20f39;
-  --destructive-foreground: #ffffff;
-  --border: #bcc0cc;
-  --input: #ccd0da;
-  --ring: #8839ef;
-  --chart-1: #8839ef;
-  --chart-2: #04a5e5;
-  --chart-3: #40a02b;
-  --chart-4: #fe640b;
-  --chart-5: #dc8a78;
-  --sidebar: #e6e9ef;
-  --sidebar-foreground: #4c4f69;
-  --sidebar-primary: #8839ef;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #04a5e5;
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #bcc0cc;
-  --sidebar-ring: #8839ef;
-  --font-sans: Montserrat, sans-serif;
-  --font-serif: Georgia, serif;
-  --font-mono: Fira Code, monospace;
-  --radius: 0.35rem;
-  --shadow-2xs: 0px 4px 6px 0px hsl(240 30% 25% / 0.06);
-  --shadow-xs: 0px 4px 6px 0px hsl(240 30% 25% / 0.06);
-  --shadow-sm:
-    0px 4px 6px 0px hsl(240 30% 25% / 0.12),
-    0px 1px 2px -1px hsl(240 30% 25% / 0.12);
-  --shadow:
-    0px 4px 6px 0px hsl(240 30% 25% / 0.12),
-    0px 1px 2px -1px hsl(240 30% 25% / 0.12);
-  --shadow-md:
-    0px 4px 6px 0px hsl(240 30% 25% / 0.12),
-    0px 2px 4px -1px hsl(240 30% 25% / 0.12);
-  --shadow-lg:
-    0px 4px 6px 0px hsl(240 30% 25% / 0.12),
-    0px 4px 6px -1px hsl(240 30% 25% / 0.12);
-  --shadow-xl:
-    0px 4px 6px 0px hsl(240 30% 25% / 0.12),
-    0px 8px 10px -1px hsl(240 30% 25% / 0.12);
-  --shadow-2xl: 0px 4px 6px 0px hsl(240 30% 25% / 0.3);
-  --tracking-normal: 0em;
-  --spacing: 0.25rem;
-}
-
-.dark {
-  --background: #181825;
-  --foreground: #cdd6f4;
-  --card: #1e1e2e;
-  --card-foreground: #cdd6f4;
-  --popover: #45475a;
-  --popover-foreground: #cdd6f4;
-  --primary: #cba6f7;
-  --primary-foreground: #1e1e2e;
-  --secondary: #585b70;
-  --secondary-foreground: #cdd6f4;
-  --muted: #292c3c;
-  --muted-foreground: #a6adc8;
-  --accent: #b4a1fa;
-  --accent-foreground: #cdd6f4;
-  --destructive: #f38ba8;
-  --destructive-foreground: #1e1e2e;
-  --border: #313244;
-  --input: #313244;
-  --ring: #cba6f7;
-  --chart-1: #cba6f7;
-  --chart-2: #89dceb;
-  --chart-3: #a6e3a1;
-  --chart-4: #fab387;
-  --chart-5: #f5e0dc;
-  --sidebar: #11111b;
-  --sidebar-foreground: #cdd6f4;
-  --sidebar-primary: #cba6f7;
-  --sidebar-primary-foreground: #1e1e2e;
-  --sidebar-accent: #89dceb;
-  --sidebar-accent-foreground: #1e1e2e;
-  --sidebar-border: #45475a;
-  --sidebar-ring: #cba6f7;
-  --font-sans: Montserrat, sans-serif;
-  --font-serif: Georgia, serif;
-  --font-mono: Fira Code, monospace;
-  --radius: 0.35rem;
-  --shadow-2xs: 0px 4px 6px 0px hsl(240 30% 25% / 0.06);
-  --shadow-xs: 0px 4px 6px 0px hsl(240 30% 25% / 0.06);
-  --shadow-sm:
-    0px 4px 6px 0px hsl(240 30% 25% / 0.12),
-    0px 1px 2px -1px hsl(240 30% 25% / 0.12);
-  --shadow:
-    0px 4px 6px 0px hsl(240 30% 25% / 0.12),
-    0px 1px 2px -1px hsl(240 30% 25% / 0.12);
-  --shadow-md:
-    0px 4px 6px 0px hsl(240 30% 25% / 0.12),
-    0px 2px 4px -1px hsl(240 30% 25% / 0.12);
-  --shadow-lg:
-    0px 4px 6px 0px hsl(240 30% 25% / 0.12),
-    0px 4px 6px -1px hsl(240 30% 25% / 0.12);
-  --shadow-xl:
-    0px 4px 6px 0px hsl(240 30% 25% / 0.12),
-    0px 8px 10px -1px hsl(240 30% 25% / 0.12);
-  --shadow-2xl: 0px 4px 6px 0px hsl(240 30% 25% / 0.3);
 }
 
 @theme inline {
@@ -201,7 +94,7 @@ body {
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --font-sans: var(--font-sans);
+  --sans: var(--font-sans);
   --font-mono: var(--font-mono);
   --font-serif: var(--font-serif);
 
@@ -406,7 +299,7 @@ body {
 }
 
 .sidebar-action-btn {
-  @apply rounded-full flex items-center justify-center transition-all hover:bg-accent/10 active:scale-95
+  @apply rounded-full flex items-center justify-center transition-all hover:bg-accent/10 active:scale-95;
 }
 
 .sidebar-menu-item {
@@ -414,7 +307,7 @@ body {
 }
 
 .sidebar-trigger-button {
-  @apply -ml-1 bg-accent text-black rounded-full w-10 h-10
+  @apply -ml-1 bg-accent rounded-full w-10 h-10;
 }
 
 .sidebar-dropdown-content {
@@ -456,7 +349,6 @@ body {
 .search-chat-input {
   @apply h-12 w-full rounded-full border bg-card pl-10 pr-10 py-2 text-sm shadow-sm focus:ring-2 focus:ring-ring/50 transition-all duration-150 placeholder:text-muted-foreground/70;
 }
-
 
 .home-container {
   @apply container flex flex-col items-center justify-center min-h-screen px-4 py-8 gap-6;
@@ -553,7 +445,9 @@ body {
   white-space: normal;
   visibility: hidden;
   opacity: 0;
-  transition: opacity 150ms, visibility 150ms;
+  transition:
+    opacity 150ms,
+    visibility 150ms;
   z-index: 50;
   pointer-events: none;
 }

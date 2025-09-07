@@ -15,18 +15,23 @@ export default function ChatMessages() {
 
   const { isChatExpanded } = useUIVisibility();
 
-  // Combine saved messages with active streams for this conversation
   const messages = useMemo(() => {
     if (!conversationId) return savedMessages;
 
-    // Get any streaming messages for this conversation
     const streamingMessages = Object.values(streams).filter(
       (streamMessage: ChatMessage) =>
         streamMessage.conversation_id === conversationId,
     );
 
-    // Return combined list: saved messages + streaming messages
-    return [...savedMessages, ...streamingMessages];
+    const streamingMessageIds = new Set(
+      streamingMessages.map((message) => message.id),
+    );
+
+    const filteredSavedMessages = savedMessages.filter(
+      (message) => !streamingMessageIds.has(message.id),
+    );
+
+    return [...filteredSavedMessages, ...streamingMessages];
   }, [savedMessages, streams, conversationId]);
 
   const handleCopyToClipboard = useCallback((content: string) => {
