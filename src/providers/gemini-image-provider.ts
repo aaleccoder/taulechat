@@ -6,7 +6,9 @@ export class GeminiImageProvider implements ChatProvider {
     return lastUser ? [{ role: "user", content: lastUser.content }] : [];
   }
 
-  async streamResponse(request: StreamRequest): Promise<ReadableStreamDefaultReader<Uint8Array>> {
+  async streamResponse(
+    request: StreamRequest,
+  ): Promise<ReadableStreamDefaultReader<Uint8Array>> {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
@@ -14,28 +16,27 @@ export class GeminiImageProvider implements ChatProvider {
     const modelName = request.modelId.split("/")[1];
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:predict`;
     const body = JSON.stringify({
-      instances: [
-        { prompt: request.messages[0]?.content || "" },
-      ],
+      instances: [{ prompt: request.messages[0]?.content || "" }],
       parameters: { sampleCount: 1 }, // Support up to 4 images
     });
     const response = await fetch(url, {
       method: "POST",
       headers,
       body,
+      signal: request.signal,
     });
-      if (!response.ok) {
-        let errorMsg = `Gemini image error: ${response.status}`;
-        if (response.status === 400) {
-          try {
-            const errJson = await response.json();
-            if (errJson?.error?.message) {
-              errorMsg = errJson.error.message;
-            }
-          } catch {}
-        }
-        throw new Error(errorMsg);
+    if (!response.ok) {
+      let errorMsg = `Gemini image error: ${response.status}`;
+      if (response.status === 400) {
+        try {
+          const errJson = await response.json();
+          if (errJson?.error?.message) {
+            errorMsg = errJson.error.message;
+          }
+        } catch {}
       }
+      throw new Error(errorMsg);
+    }
     const json = await response.json();
     console.log(json);
     const images = json?.images || [];
