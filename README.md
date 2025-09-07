@@ -108,8 +108,10 @@ CI tips:
 
 ### UI / UX
 
-* Mobile-friendly ChatInput and ChatMessages components.
+* Centralized state management with Zustand for chat streaming and UI state.
+* Mobile-friendly `ChatInput` and `ChatMessages` components.
 * Dialog-based parameter editor and memoized markdown renderer.
+* Several different themes are supported, with the initial support for custom themes in the way. Currently is as easy as putting a css file in the `themes/` folder and modifying the theme provider to include the theme. Next up is customization withouht need for this css files.
 
 ### Utilities
 
@@ -134,22 +136,11 @@ CI tips:
 
 * Better generation controls (presets, params, progress).
 * Optional local LLM support groundwork.
-
-**Android & file handling**
-
-* Broader Android tests; finalize `tauri-plugin-fs` behavior across API levels.
-
-**Polishing**
-
-* Add unit/integration tests for providers and message parsing.
-* Surface clearer user-facing network/provider errors.
-
 ---
 
 ## Android & Platform notes
 
 * Android builds require appropriate SDK/NDK and platform tooling. Test file permissions thoroughly across API levels.
-* Tauri on Android may require specific `AndroidManifest.xml` permissions for file access (e.g., `READ_EXTERNAL_STORAGE` / `WRITE_EXTERNAL_STORAGE` or SAF usage depending on target API).
 * When testing provider streaming on mobile, ensure stable network handling and background/foreground transitions are handled.
 
 ---

@@ -2,11 +2,8 @@ import { Button } from "./ui/button";
 import { Clipboard } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import {
-  ghcolors,
   materialDark,
   materialLight,
-  oneDark,
-  vscDarkPlus,
 } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useTheme } from "./theme-provider";
 
