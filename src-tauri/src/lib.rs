@@ -1,10 +1,30 @@
 use base64::{engine::general_purpose, Engine as _};
-use image::{DynamicImage, GenericImageView, ImageReader};
+use image::{DynamicImage, GenericImageView, ImageFormat, ImageReader};
 use std::fs;
 use std::io::Cursor;
+use std::path::Path;
 use tauri::{AppHandle, Url};
 use tauri_plugin_fs::FsExt;
 use tauri_plugin_sql::{Migration, MigrationKind};
+
+fn get_image_format_from_path(file_path: &str) -> ImageFormat {
+    let path = Path::new(file_path);
+    let extension = path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+
+    match extension.as_str() {
+        "png" | "apng" => ImageFormat::Png,
+        "webp" => ImageFormat::WebP,
+        "gif" => ImageFormat::Gif,
+        "bmp" => ImageFormat::Bmp,
+        "tiff" | "tif" => ImageFormat::Tiff,
+        "ico" => ImageFormat::Ico,
+        _ => ImageFormat::Jpeg, // Default to JPEG for jpg, jpeg, and unknown formats
+    }
+}
 
 #[tauri::command]
 async fn read_and_encode_file(app: AppHandle, file_path: String) -> Result<String, String> {
@@ -29,11 +49,16 @@ async fn read_and_optimize_image(app: AppHandle, file_path: String) -> Result<St
         fs::read(&file_path).map_err(|e| e.to_string())?
     };
 
+    // Get the original format from file extension
+    let original_format = get_image_format_from_path(&file_path);
+
     // Run the CPU-intensive operation in a blocking task
     let result = tokio::task::spawn_blocking(move || -> Result<String, String> {
-        let img = ImageReader::new(Cursor::new(&img_bytes))
+        let img_reader = ImageReader::new(Cursor::new(&img_bytes))
             .with_guessed_format()
-            .map_err(|e| format!("Failed to guess image format: {}", e))?
+            .map_err(|e| format!("Failed to guess image format: {}", e))?;
+
+        let img = img_reader
             .decode()
             .map_err(|e| format!("Failed to decode image: {}", e))?;
 
@@ -42,10 +67,34 @@ async fn read_and_optimize_image(app: AppHandle, file_path: String) -> Result<St
         let mut output_buffer = Vec::new();
         let mut cursor = Cursor::new(&mut output_buffer);
 
-        let encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut cursor, 85);
-        optimized_img
-            .write_with_encoder(encoder)
-            .map_err(|e| format!("Failed to encode optimized image: {}", e))?;
+        // Encode based on original format
+        match original_format {
+            ImageFormat::Png => {
+                let encoder = image::codecs::png::PngEncoder::new(&mut cursor);
+                optimized_img
+                    .write_with_encoder(encoder)
+                    .map_err(|e| format!("Failed to encode PNG image: {}", e))?;
+            }
+            ImageFormat::WebP => {
+                let encoder = image::codecs::webp::WebPEncoder::new_lossless(&mut cursor);
+                optimized_img
+                    .write_with_encoder(encoder)
+                    .map_err(|e| format!("Failed to encode WebP image: {}", e))?;
+            }
+            ImageFormat::Gif => {
+                let encoder = image::codecs::gif::GifEncoder::new(&mut cursor);
+                optimized_img
+                    .write_with_encoder(encoder)
+                    .map_err(|e| format!("Failed to encode GIF image: {}", e))?;
+            }
+            _ => {
+                // Default to JPEG for other formats (JPEG, BMP, etc.)
+                let encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut cursor, 85);
+                optimized_img
+                    .write_with_encoder(encoder)
+                    .map_err(|e| format!("Failed to encode JPEG image: {}", e))?;
+            }
+        }
 
         let encoded_string = general_purpose::STANDARD.encode(output_buffer);
         Ok(encoded_string)
@@ -145,6 +194,12 @@ pub fn run() {
         version: 3,
         description: "add thoughts to messages table",
         sql: "ALTER TABLE messages ADD COLUMN thoughts TEXT;",
+        kind: MigrationKind::Up,
+    },
+    Migration {
+        version: 4,
+        description: "add annotations to messages table",
+        sql: "ALTER TABLE messages ADD COLUMN annotations TEXT;",
         kind: MigrationKind::Up,
     }
     ];

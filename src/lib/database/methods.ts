@@ -41,10 +41,11 @@ export function createMessage(
     usage_metadata?: string | null,
     model_version?: string | null,
     response_id?: string | null,
-    thoughts?: string | null
+    thoughts?: string | null,
+    annotations?: string | null
 ) {
     return db.execute(
-        "INSERT INTO messages (id, conversation_id, role, content, tokens_used, grounding_chunks, grounding_supports, web_search_queries, usage_metadata, model_version, response_id, thoughts) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
+        "INSERT INTO messages (id, conversation_id, role, content, tokens_used, grounding_chunks, grounding_supports, web_search_queries, usage_metadata, model_version, response_id, thoughts, annotations) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)",
         [
             id,
             conversation_id,
@@ -57,7 +58,8 @@ export function createMessage(
             usage_metadata,
             model_version,
             response_id,
-            thoughts
+            thoughts,
+            annotations
         ]
     );
 }

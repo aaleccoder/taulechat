@@ -73,6 +73,7 @@ export type ChatMessage = {
     modelVersion?: string;
     responseId?: string;
     streaming?: boolean;
+    annotations?: any[]; // OpenRouter PDF annotations for file reuse
 }
 export type MessageFile = {
     id: string;
@@ -134,6 +135,43 @@ export type SidebarDataState = {
     removeConversations: (conversationIds: string[]) => void;
     updateConversation: (conversation: Omit<ConversationState, 'messages'>) => void;
 }
+
+export type BackgroundGenerationState = {
+    activeGenerations: Set<string>; // conversation IDs with active background generation
+    
+    addBackgroundGeneration: (conversationId: string) => void;
+    removeBackgroundGeneration: (conversationId: string) => void;
+    isGeneratingInBackground: (conversationId: string) => boolean;
+    getActiveGenerations: () => string[];
+    clearAllBackgroundGenerations: () => void;
+};
+
+export const useBackgroundGeneration = create<BackgroundGenerationState>((set, get) => ({
+    activeGenerations: new Set(),
+    
+    addBackgroundGeneration: (conversationId: string) => 
+        set((state) => {
+            const newGenerations = new Set(state.activeGenerations);
+            newGenerations.add(conversationId);
+            return { activeGenerations: newGenerations };
+        }),
+    
+    removeBackgroundGeneration: (conversationId: string) => 
+        set((state) => {
+            const newGenerations = new Set(state.activeGenerations);
+            newGenerations.delete(conversationId);
+            return { activeGenerations: newGenerations };
+        }),
+    
+    isGeneratingInBackground: (conversationId: string) => 
+        get().activeGenerations.has(conversationId),
+    
+    getActiveGenerations: () => 
+        Array.from(get().activeGenerations),
+    
+    clearAllBackgroundGenerations: () => 
+        set({ activeGenerations: new Set() })
+}));
 
 export type ReasoningLevel = 'low' | 'medium' | 'high';
 
@@ -247,7 +285,7 @@ export const useStore = create<ChatConversationsState>((set, get) => ({
                 (Array.isArray(rawMessages) ? rawMessages : []).map(async (m) => {
                     try {
                         const files = await getFilesForMessage(m.id);
-                        // Parse Gemini fields from DB JSON columns (use type assertion for raw DB result)
+                        // Parse fields from DB JSON columns (use type assertion for raw DB result)
                         const dbRow = m as any;
                         return {
                             ...m,
@@ -257,6 +295,7 @@ export const useStore = create<ChatConversationsState>((set, get) => ({
                             groundingSupports: dbRow.grounding_supports ? JSON.parse(dbRow.grounding_supports) : undefined,
                             webSearchQueries: dbRow.web_search_queries ? JSON.parse(dbRow.web_search_queries) : undefined,
                             usageMetadata: dbRow.usage_metadata ? JSON.parse(dbRow.usage_metadata) : undefined,
+                            annotations: dbRow.annotations ? JSON.parse(dbRow.annotations) : undefined,
                             modelVersion: dbRow.model_version,
                             responseId: dbRow.response_id,
                             streaming: false, // Messages loaded from DB are complete

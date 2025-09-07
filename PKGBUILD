@@ -1,6 +1,6 @@
 # Maintainer:
 pkgname=taulechat-git
-pkgver=0.1.0
+pkgver=v0.2.5.r0.gcf2610d
 pkgrel=1
 pkgdesc="A modern AI chat application built with Tauri, React, and Rust"
 arch=('x86_64' 'aarch64')

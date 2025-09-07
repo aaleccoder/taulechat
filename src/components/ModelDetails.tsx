@@ -1,7 +1,7 @@
 import { OpenRouterModel, GeminiModel } from "@/utils/state";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Brain, Image, Zap, Clock, DollarSign, Server, Info } from "lucide-react";
+import { Brain, Image, Zap, Clock, DollarSign, Server, Info, FileText } from "lucide-react";
 
 interface ModelDetailsProps {
     model: OpenRouterModel | GeminiModel;
@@ -12,11 +12,9 @@ export default function ModelDetails({ model, isMobile = false }: ModelDetailsPr
     const provider = (model as any)?.provider;
     const name = (model as any).name || (model as any).displayName || (model as any).id;
 
-    // OpenRouter specific data
     const isOpenRouter = provider === "OpenRouter";
     const openRouterModel = model as OpenRouterModel;
 
-    // Gemini specific data
     const isGemini = provider === "Gemini";
     const geminiModel = model as GeminiModel;
 
@@ -24,6 +22,8 @@ export default function ModelDetails({ model, isMobile = false }: ModelDetailsPr
     const supportsImageOutput = isOpenRouter && Array.isArray(openRouterModel?.architecture?.output_modalities) && openRouterModel.architecture.output_modalities.includes("image");
     const supportsReasoning = isOpenRouter && Array.isArray(openRouterModel?.supported_parameters) && openRouterModel.supported_parameters.includes("reasoning");
     const isThinkingModel = isGemini && geminiModel?.thinking === true;
+
+    const supportsPdfInput = isOpenRouter || isGemini;
 
     const formatTokenCount = (count: number) => {
         if (count >= 1000000) {
@@ -66,7 +66,6 @@ export default function ModelDetails({ model, isMobile = false }: ModelDetailsPr
                 </>
             )}
 
-            {/* Capabilities */}
             <Separator />
             <div>
                 <h4 className={`${isMobile ? 'text-sm' : 'text-xs'} font-medium mb-2 flex items-center gap-2`}>
@@ -90,6 +89,12 @@ export default function ModelDetails({ model, isMobile = false }: ModelDetailsPr
                         <Badge variant="outline" className="text-xs">
                             <Image className="w-3 h-3 mr-1" />
                             Image Output
+                        </Badge>
+                    )}
+                    {supportsPdfInput && (
+                        <Badge variant="outline" className="text-xs">
+                            <FileText className="w-3 h-3 mr-1" />
+                            PDF Input
                         </Badge>
                     )}
                 </div>

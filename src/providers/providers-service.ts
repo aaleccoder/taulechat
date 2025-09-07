@@ -137,8 +137,20 @@ export function useChatService() {
         // ...existing code...
         let geminiParts: any[] = [{ text: prompt }];
         if (isGemini && attachments.length > 0) {
+          let totalPdfCount = 0;
           for (const attachment of attachments) {
             const base64 = uint8ToBase64(attachment.bytes);
+            
+            // Count PDFs and warn about page limits
+            if (attachment.mimeType === "application/pdf") {
+              totalPdfCount++;
+              if (totalPdfCount === 1) {
+                toast.info("Note: Gemini models support up to 1000 document pages total. Additional pages will be ignored.", {
+                  duration: 5000
+                });
+              }
+            }
+            
             geminiParts.push({
               inline_data: {
                 mime_type: attachment.mimeType,

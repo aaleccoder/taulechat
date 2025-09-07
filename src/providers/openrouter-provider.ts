@@ -11,24 +11,72 @@ import {
 export class OpenRouterProvider implements ChatProvider {
   formatMessages(messages: any[], options?: { supportsImages?: boolean }): FormattedMessage[] {
     return messages.map((m: any) => {
+      // Handle user messages with files
       if (m.role === "user" && (m.files?.length || 0) > 0) {
         const parts: any[] = [];
         if (m.content?.trim()) parts.push({ type: "text", text: m.content });
-        if (options?.supportsImages) {
-          for (const f of m.files!.slice(0, 2)) {
-            if (f.mime_type.startsWith("image/") && options?.supportsImages) {
+        
+        for (const f of m.files!.slice(0, 2)) { // OpenRouter supports max 2 files
+          if (f.mime_type.startsWith("image/") && options?.supportsImages) {
+            const b64 = getBase64FromData(f.data);
+            parts.push({ 
+              type: "image_url", 
+              image_url: { url: `data:${f.mime_type};base64,${b64}` } 
+            });
+          } else if (f.mime_type === "application/pdf") {
+            // Check if we have annotations for this file to reuse
+            const hasAnnotations = this.checkForExistingAnnotations(messages, f.file_name);
+            
+            if (!hasAnnotations) {
+              // First time sending this PDF - include full data
               const b64 = getBase64FromData(f.data);
-              parts.push({ type: "image_url", image_url: { url: `data:${f.mime_type};base64,${b64}` } });
+              parts.push({
+                type: "file",
+                file: {
+                  filename: f.file_name,
+                  file_data: `data:${f.mime_type};base64,${b64}`
+                }
+              });
             }
+            // If annotations exist, we'll reference the file by name only in later logic
           }
         }
+        
         return { role: m.role, content: parts.length > 0 ? parts : m.content };
       }
+      
+      // Handle assistant messages with annotations
+      if (m.role === "assistant") {
+        const messageObj: any = { role: m.role, content: m.content };
+        if (m.annotations) {
+          messageObj.annotations = m.annotations;
+        }
+        return messageObj;
+      }
+      
       return { role: m.role, content: m.content };
     });
   }
 
+  // Helper method to check if annotations exist for a file in previous messages
+  private checkForExistingAnnotations(messages: any[], filename: string): boolean {
+    return messages.some(msg => 
+      msg.role === "assistant" && 
+      msg.annotations && 
+      Array.isArray(msg.annotations) &&
+      msg.annotations.some((ann: any) => ann.filename === filename)
+    );
+  }
+
   async streamResponse(request: StreamRequest): Promise<ReadableStreamDefaultReader<Uint8Array>> {
+    // Check if any message contains PDF files
+    const hasPdfFiles = request.messages.some((msg: any) => 
+      Array.isArray(msg.content) && 
+      msg.content.some((part: any) => 
+        part.type === "file" && part.file?.file_data?.includes("application/pdf")
+      )
+    );
+
     // Build the request body
     const requestBody: any = {
       model: request.modelId,
@@ -41,6 +89,18 @@ export class OpenRouterProvider implements ChatProvider {
         include: true
       }
     };
+
+    // Add PDF parsing plugin if PDFs are present
+    if (hasPdfFiles) {
+      requestBody.plugins = [
+        {
+          id: "file-parser",
+          pdf: {
+            engine: "pdf-text" // Use advanced engine for better PDF parsing
+          }
+        }
+      ];
+    }
 
     // Add parameters if provided
     if (request.parameters) {
@@ -134,6 +194,7 @@ export class OpenRouterProvider implements ChatProvider {
     let thoughts = "";
     let images: any[] = [];
     let usageMetadata: any = null;
+    let annotations: any[] | null = null;
     
     for (const line of lines) {
       const jsonStr = line.replace("data: ", "");
@@ -149,6 +210,10 @@ export class OpenRouterProvider implements ChatProvider {
           }
         }
 
+        // Capture annotations from the response (usually in the final chunk)
+        if (parsed.choices[0]?.message?.annotations) {
+          annotations = parsed.choices[0].message.annotations;
+        }
 
         console.log(parsed);
         
@@ -191,6 +256,9 @@ export class OpenRouterProvider implements ChatProvider {
     }
     if (usageMetadata) {
       metadata.usageMetadata = usageMetadata;
+    }
+    if (annotations) {
+      metadata.annotations = annotations;
     }
     return { token, metadata, thoughts };
   }

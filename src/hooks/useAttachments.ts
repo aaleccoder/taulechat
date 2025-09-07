@@ -30,11 +30,20 @@ export function useAttachments(selectedModel: any) {
     }
     
     if (isProcessing) {
-      toast.error("Please wait, images are still being processed");
+      toast.error("Please wait, files are still being processed");
       return;
     }
     
-    const files = await openFile({ multiple: true, directory: false });
+    const files = await openFile({ 
+      multiple: true, 
+      directory: false,
+      filters: [
+        {
+          name: 'Images and PDFs',
+          extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'pdf']
+        }
+      ]
+    });
     const fileEntries: (string | FileEntry)[] = Array.isArray(files) ? files : files ? [files] : [];
     if (fileEntries.length === 0) return;
     
@@ -53,6 +62,11 @@ export function useAttachments(selectedModel: any) {
     };
     
     const supportsImages = !!selectedModel?.architecture?.input_modalities?.includes("image");
+    const isGemini = selectedModel?.provider === "Gemini";
+    const isOpenRouter = selectedModel?.provider === "OpenRouter";
+    
+    // Count existing PDFs
+    const existingPdfCount = attachments.filter(att => att.mimeType === "application/pdf").length;
     
     const loadingPlaceholders: typeof attachments = [];
     for (const entry of fileEntries) {
@@ -60,22 +74,44 @@ export function useAttachments(selectedModel: any) {
       const fileName = (typeof entry === 'object' && entry.name) ? entry.name : path.split(/[\\/]/).pop() || "file";
       const mimeType = extToMime(fileName);
       const isImage = mimeType.startsWith("image/");
-      const isGemini = selectedModel?.provider === "Gemini";
+      const isPdf = mimeType === "application/pdf";
       
+      // Check image support
       if (isImage && !supportsImages && !isGemini) {
         toast.error("This model doesn't support image input");
         continue;
       }
-
-      console.log(path);
       
-      if (isImage) {
-        // Create a loading placeholder for images
+      // Check PDF support and limits
+      if (isPdf) {
+        if (!isGemini && !isOpenRouter) {
+          toast.error("PDF files are only supported by Gemini and OpenRouter models");
+          continue;
+        }
+        
+        if (isOpenRouter && (existingPdfCount > 0 || attachments.some(a => a.mimeType === "application/pdf"))) {
+          toast.error("OpenRouter models support only one PDF file at a time");
+          continue;
+        }
+        
+        if (isGemini && existingPdfCount >= 10) {
+          toast.error("Gemini models support up to 10 PDF files (max 1000 pages total)");
+          continue;
+        }
+        
+        if (isOpenRouter && existingPdfCount === 0) {
+          toast.info("OpenRouter will process this PDF once and reuse it in future messages to optimize performance.", {
+            duration: 4000
+          });
+        }
+      }
+
+      if (isImage || isPdf) {
         const placeholderId = crypto.randomUUID();
         loadingPlaceholders.push({
           id: placeholderId,
-          fileName: fileName.replace(/\.[^.]*$/, '.jpg'),
-          mimeType: "image/jpeg",
+          fileName: fileName,
+          mimeType: mimeType,
           base64: "",
           bytes: new Uint8Array(),
           size: 0,
@@ -84,11 +120,15 @@ export function useAttachments(selectedModel: any) {
         });
       }
       
-      if (attachments.length + loadingPlaceholders.length >= 2) break;
+      // For OpenRouter, limit to 2 total files (including PDFs and images)
+      // For Gemini, limit to reasonable number but allow more PDFs
+      const maxFiles = isOpenRouter ? 2 : (isGemini ? 12 : 2);
+      if (attachments.length + loadingPlaceholders.length >= maxFiles) break;
     }
     
     if (loadingPlaceholders.length > 0) {
-      setAttachments(prev => [...prev, ...loadingPlaceholders].slice(0, 2));
+      const maxAllowed = isOpenRouter ? 2 : (isGemini ? 12 : 2);
+      setAttachments(prev => [...prev, ...loadingPlaceholders].slice(0, maxAllowed));
       setIsProcessing(true);
     }
     
@@ -99,13 +139,13 @@ export function useAttachments(selectedModel: any) {
       try {
         const mimeType = extToMime(fileName);
         const isImage = mimeType.startsWith("image/");
+        const isPdf = mimeType === "application/pdf";
         
         let base64: string;
         let finalMimeType = mimeType;
         
         if (isImage) {
           base64 = await invoke<string>("read_and_optimize_image", { filePath: path });
-          finalMimeType = "image/jpeg";
         } else {
           base64 = await invoke<string>("read_and_encode_file", { filePath: path });
         }
@@ -114,9 +154,14 @@ export function useAttachments(selectedModel: any) {
         const bytes = new Uint8Array(binary.length);
         for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
         
+        // Check PDF file size (warn if too large, as it might exceed context)
+        if (isPdf && bytes.byteLength > 50 * 1024 * 1024) { // 50MB
+          toast.warning("Large PDF file detected. It may exceed the model's context limit.");
+        }
+        
         const processedAttachment = {
           id: placeholderId || crypto.randomUUID(),
-          fileName: isImage ? fileName.replace(/\.[^.]*$/, '.jpg') : fileName,
+          fileName: fileName,
           mimeType: finalMimeType,
           base64,
           bytes,
@@ -135,7 +180,11 @@ export function useAttachments(selectedModel: any) {
         
       } catch (err) {
         console.error("Failed reading file:", err);
-        toast.error(`Failed to load ${fileName}`);
+        const fileType = extToMime(fileName);
+        const errorMessage = fileType === "application/pdf" 
+          ? `The PDF file is not supported or is too large: ${fileName}`
+          : `The file is not supported or is too large: ${fileName}`;
+        toast.error(errorMessage);
         
         if (placeholderId) {
           setAttachments(prev => prev.filter(att => att.id !== placeholderId));
@@ -152,19 +201,25 @@ export function useAttachments(selectedModel: any) {
       const fileName = (typeof entry === 'object' && entry.name) ? entry.name : path.split(/[\\/]/).pop() || "file";
       const mimeType = extToMime(fileName);
       const isImage = mimeType.startsWith("image/");
-      const isGemini = selectedModel?.provider === "Gemini";
+      const isPdf = mimeType === "application/pdf";
       
+      // Skip files that don't meet requirements
       if (isImage && !supportsImages && !isGemini) {
         continue;
       }
       
-      const placeholderId = isImage && placeholderIndex < loadingPlaceholders.length 
+      if (isPdf && !isGemini && !isOpenRouter) {
+        continue;
+      }
+      
+      const placeholderId = (isImage || isPdf) && placeholderIndex < loadingPlaceholders.length 
         ? loadingPlaceholders[placeholderIndex++]?.id 
         : undefined;
         
       processingPromises.push(processFile(entry, placeholderId));
       
-      if (attachments.length + processingPromises.length >= 2) break;
+      const maxFiles = isOpenRouter ? 2 : (isGemini ? 12 : 2);
+      if (attachments.length + processingPromises.length >= maxFiles) break;
     }
     
     try {
