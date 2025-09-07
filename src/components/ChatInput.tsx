@@ -204,17 +204,17 @@ export default function ChatInput({ id }: { id: string }) {
   };
 
   return (
-    <div className="flex justify-center items-center w-full h-full mx-auto">
+    <div className="flex justify-center items-center w-full h-full mx-auto mb-4">
       <form
         role="form"
         aria-label="Chat input"
-        className="chat-input-form w-full max-w-xl px-2 pt-2"
+        className="chat-input-form w-full md:max-w-[60vw] px-2 pt-2"
       >
         <AttachmentStrip
           attachments={attachments}
           onRemove={removeAttachment}
         />
-        <div className="w-full rounded-xl border bg-card shadow-md px-2 py-2 flex flex-col gap-2 items-center motion-safe:transition-shadow focus-within:ring-2 focus-within:ring-ring/50">
+        <div className="w-full rounded-3xl border bg-card shadow-md px-2 py-2 flex flex-col gap-2 items-center motion-safe:transition-shadow focus-within:ring-2 focus-within:ring-ring/50">
           <div className="w-full flex flex-row items-center gap-2">
             <Button
               className="h-12 w-12 rounded-full motion-safe:transition-all motion-safe:duration-150 hover:bg-accent/10 active:scale-95"

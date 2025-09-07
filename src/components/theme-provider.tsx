@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
 export const themes = [
-  "catppuccin-mocha",
+  "catppuccin",
   "graphite",
   "t3chat",
   "vercel",
@@ -27,7 +27,7 @@ type ThemeProviderState = {
 };
 
 const initialState: ThemeProviderState = {
-  theme: themes[0] as Theme,
+  theme: "catppuccin",
   setTheme: () => null,
   mode: "dark",
   setMode: () => null,
@@ -37,7 +37,7 @@ const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
 
 export function ThemeProvider({
   children,
-  defaultTheme = themes[0] as Theme,
+  defaultTheme = "catppuccin",
   defaultMode = "system",
   storageKeyTheme = "vite-ui-theme",
   storageKeyMode = "vite-ui-mode",
@@ -53,32 +53,54 @@ export function ThemeProvider({
   useEffect(() => {
     const root = window.document.documentElement;
 
-    themes.forEach((t) => root.classList.remove(`theme-${t}`));
+    const apply = () => {
+      themes.forEach((t) => root.classList.remove(`theme-${t}`));
+      root.classList.add(`theme-${theme}`);
 
-    root.classList.add(`theme-${theme}`);
-  }, [theme]);
+      root.classList.remove("light", "dark");
+      const resolvedMode =
+        mode === "system"
+          ? window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light"
+          : mode;
+      root.classList.add(resolvedMode);
+    };
 
-  useEffect(() => {
-    const root = window.document.documentElement;
-    root.classList.remove("light", "dark");
+    apply();
+
+    let mql: MediaQueryList | null = null;
+    const onChange = () => apply();
 
     if (mode === "system") {
-      const systemMode = window.matchMedia("(prefers-color-scheme: dark)")
-        .matches
-        ? "dark"
-        : "light";
-      root.classList.add(systemMode);
-      return;
+      mql = window.matchMedia("(prefers-color-scheme: dark)");
+      if (typeof mql.addEventListener === "function") {
+        mql.addEventListener("change", onChange);
+      } else if (typeof mql.addListener === "function") {
+        mql.addListener(onChange);
+      }
     }
 
-    root.classList.add(mode);
-  }, [mode]);
+    return () => {
+      if (mql) {
+        if (typeof mql.removeEventListener === "function") {
+          mql.removeEventListener("change", onChange);
+        } else if (typeof mql.removeListener === "function") {
+          mql.removeListener(onChange);
+        }
+      }
+    };
+  }, [theme, mode]);
 
   const value = {
     theme,
     setTheme: (newTheme: Theme) => {
+      if (themes.includes(newTheme)) {
+        setTheme(newTheme);
+      } else {
+        setTheme(defaultTheme);
+      }
       localStorage.setItem(storageKeyTheme, newTheme);
-      setTheme(newTheme);
     },
     mode,
     setMode: (newMode: Mode) => {

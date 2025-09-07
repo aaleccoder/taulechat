@@ -49,7 +49,7 @@ function App() {
   const [open, setOpen] = useState(false);
 
   return (
-    <ThemeProvider defaultTheme="dark">
+    <ThemeProvider defaultTheme="catppuccin" defaultMode="system">
       <SidebarProvider open={open} onOpenChange={setOpen}>
         <AppSidebar />
         <SidebarInset>
@@ -57,15 +57,15 @@ function App() {
             className={`app-header absolute top-0 left-0 right-0 z-30 border-b bg-background/80 backdrop-blur-sm transition-all duration-300 mt-2
             }`}
           >
-            <SidebarTrigger className="sidebar-trigger-button" />
+            <SidebarTrigger className="h-10 w-10 rounded-full motion-safe:transition-all motion-safe:duration-150 hover:bg-accent/10 active:scale-95" />
 
-            <div className="absolute left-1/2 transform -translate-x-1/2">
+            {/*<div className="absolute left-1/2 transform -translate-x-1/2">
               <Link to="/" className="">
-                <span className="text-primary font-bold tracking-wide text-xl font-mono capitalize">
+                <span className="text-accent-foreground font-bold tracking-wide text-xl font-mono capitalize">
                   TauLeChat
                 </span>
               </Link>
-            </div>
+            </div>*/}
 
             <div className="flex items-center gap-2">
               <ThemeSwitcher />
@@ -75,7 +75,10 @@ function App() {
                 size="sm"
                 className="new-chat-btn"
               >
-                <Link to="/chat">
+                <Link
+                  to="/chat"
+                  className="h-10 w-10 rounded-full motion-safe:transition-all motion-safe:duration-150 hover:bg-accent/10 active:scale-95"
+                >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"

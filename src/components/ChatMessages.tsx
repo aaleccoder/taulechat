@@ -42,7 +42,7 @@ export default function ChatMessages() {
   if (!messages || messages.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center text-muted-foreground h-full">
-        <p className="text-sm">No messages yet. Start the conversation!</p>
+        <p className="text-3xl">No messages yet. Start the conversation!</p>
       </div>
     );
   }
