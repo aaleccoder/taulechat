@@ -13,16 +13,7 @@
       "identifier": "http:default",
       "allow": [
         {
-          "url": "https://*.tauri.app"
-        },
-        {
-          "url": "https://openrouter.ai/api/v1/*"
-        },
-        {
-          "url": "https://generativelanguage.googleapis.com/v1beta/*"
-        },
-        {
-          "url": "https://vertexaisearch.cloud.google.com/**"
+          "url": "https://*"
         }
       ],
       "deny": [

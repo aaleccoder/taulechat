@@ -213,10 +213,8 @@ export default function ModelsList({
 
                                 const handleDetailsClick = (e: React.MouseEvent) => {
                                     e.stopPropagation();
-                                    if (deviceIsMobile || isMobile) {
-                                        setDetailsModel(model);
-                                        setIsDetailsOpen(true);
-                                    }
+                                    setDetailsModel(model);
+                                    setIsDetailsOpen(true);
                                 };
 
                                 const ModelCard = (
@@ -326,14 +324,14 @@ export default function ModelsList({
                 </div>
             </div>
 
-            {/* Mobile Details Dialog */}
+            {/* Details Dialog */}
             <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
                 <DialogContent className="max-w-[95vw] max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Model Details</DialogTitle>
                     </DialogHeader>
                     {detailsModel && (
-                        <ModelDetails model={detailsModel} isMobile={true} />
+                        <ModelDetails model={detailsModel} isMobile={deviceIsMobile || isMobile} />
                     )}
                 </DialogContent>
             </Dialog>
